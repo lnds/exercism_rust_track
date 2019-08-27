@@ -1,19 +1,18 @@
-fn modular_pow(base: u64, exponent: u64, modulus: u64) -> u64 {
-    let mut c: u64 = 1;
-    let mut e = exponent;
-    let mut b = base % modulus;
-    loop {
-        if e % 2 == 1 {
-            c *= b;
-            c %= modulus;
-        }
-        if e == 1 {
-            return c;
-        }
-        e /= 2;
-        b *= b;
-        b %= modulus;
+fn mod_pow(b: u64, e: u64, m: u64) -> u64 {
+    if m == 1 {
+        return 0
     }
+    let mut r: u64 = 1;
+    let mut b: u64 = b % m;
+    let mut e = e;
+    while e > 0 {
+        if e % 2 == 1 {
+            r = (r * b) % m
+        }
+        e = e >> 1;
+        b = (b * b) % m;
+    }
+    r
 }
 
 pub fn private_key(p: u64) -> u64 {
@@ -21,9 +20,9 @@ pub fn private_key(p: u64) -> u64 {
 }
 
 pub fn public_key(p: u64, g: u64, a: u64) -> u64 {
-    modular_pow(g, a, p)
+    mod_pow(g, a, p)
 }
 
 pub fn secret(p: u64, b_pub: u64, a: u64) -> u64 {
-    modular_pow(b_pub, a, p)
+    mod_pow(b_pub, a, p)
 }
