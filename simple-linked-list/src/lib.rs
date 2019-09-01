@@ -12,6 +12,7 @@ impl<T> Node<T> {
     }
 }
 
+#[derive(Default)]
 pub struct SimpleLinkedList<T> {
     head: Option<Box<Node<T>>>,
 }
@@ -21,16 +22,16 @@ impl<T> SimpleLinkedList<T> {
         SimpleLinkedList { head: None }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn len(&self) -> usize {
         fn count<T>(node: &Option<Box<Node<T>>>) -> Option<usize> {
             match node {
                 None => None,
-                Some(ref node)  => 
-                    if let Some(_) = &node.next {
-                        count(&node.next).map(|r| r + 1)
-                    } else {
-                        Some(1)
-                    }
+                Some(node) if !&node.next.is_some() => Some(1),
+                Some(node) => count(&node.next).map(|r| r + 1),
             }
         }
 
@@ -58,7 +59,7 @@ impl<T> SimpleLinkedList<T> {
     pub fn peek(&self) -> Option<&T> {
         match self.head {
             None => None,
-            Some(ref node) => Some(&node.data)
+            Some(ref node) => Some(&node.data),
         }
     }
 }
@@ -66,10 +67,10 @@ impl<T> SimpleLinkedList<T> {
 impl<T: Clone> SimpleLinkedList<T> {
     pub fn rev(&self) -> SimpleLinkedList<T> {
         let mut result: SimpleLinkedList<T> = SimpleLinkedList::new();
-        let mut node_opt  = self.head.clone();
-        while let Some(node) = node_opt  {
-                result.push(node.data);
-                node_opt = node.next
+        let mut node_opt = self.head.clone();
+        while let Some(node) = node_opt {
+            result.push(node.data);
+            node_opt = node.next
         }
         result
     }
@@ -77,21 +78,21 @@ impl<T: Clone> SimpleLinkedList<T> {
 
 impl<'a, T: Clone> From<&'a [T]> for SimpleLinkedList<T> {
     fn from(item: &[T]) -> Self {
-        let mut result : SimpleLinkedList<T> = SimpleLinkedList::new();
+        let mut result: SimpleLinkedList<T> = SimpleLinkedList::new();
         for i in item.iter() {
             result.push(i.clone());
         }
-        result  
+        result
     }
 }
 
 impl<T> Into<Vec<T>> for SimpleLinkedList<T> {
     fn into(self) -> Vec<T> {
         let mut result: Vec<T> = vec![];
-        let mut node_opt  = self.head;
-        while let Some(node) = node_opt  {
-                result.push(node.data);
-                node_opt = node.next
+        let mut node_opt = self.head;
+        while let Some(node) = node_opt {
+            result.push(node.data);
+            node_opt = node.next
         }
         result.reverse();
         result
