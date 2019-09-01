@@ -7,7 +7,6 @@ pub struct Clock {
 }
 
 impl Clock {
-    
     pub fn new(hours: i32, minutes: i32) -> Self {
         let total_min = ((hours * 60 + minutes) % 1440 + 1440) % 1440;
         Clock {
@@ -26,4 +25,3 @@ impl fmt::Display for Clock {
         write!(f, "{:02}:{:02}", self.hours, self.minutes)
     }
 }
-

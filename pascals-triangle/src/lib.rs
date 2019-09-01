@@ -8,19 +8,11 @@ impl PascalsTriangle {
     }
 
     pub fn rows(&self) -> Vec<Vec<u32>> {
-        let mut result: Vec<Vec<u32>> = vec![];
-        for n in 0..self.row_count {
-            result.push(PascalsTriangle::calc_row(n))
-        }
-        result
+        (0..self.row_count).map(PascalsTriangle::calc_row).collect()
     }
 
     fn calc_row(n: u32) -> Vec<u32> {
-        let mut result: Vec<u32> = vec![];
-        for k in 0..=n {
-            result.push(PascalsTriangle::bin_coef(n, k))
-        }
-        result
+        (0..=n).map(|k| PascalsTriangle::bin_coef(n, k)).collect()
     }
 
     fn bin_coef(n: u32, k: u32) -> u32 {

@@ -9,5 +9,5 @@ pub fn verse(n: i32) -> String {
 }
 
 pub fn sing(start: i32, end: i32) -> String {
-    (end..=start).rev().map(|n| verse(n)).collect::<Vec<String>>().join("\n")
+    (end..=start).rev().map(verse).collect::<Vec<String>>().join("\n")
 }

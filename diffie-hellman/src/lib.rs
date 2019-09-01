@@ -9,7 +9,7 @@ fn mod_pow(b: u64, e: u64, m: u64) -> u64 {
         if e % 2 == 1 {
             r = (r * b) % m
         }
-        e = e >> 1;
+        e >>= 1;
         b = (b * b) % m;
     }
     r
