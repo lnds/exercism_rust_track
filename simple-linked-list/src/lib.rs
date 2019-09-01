@@ -42,8 +42,10 @@ impl<T> SimpleLinkedList<T> {
     }
 
     pub fn push(&mut self, element: T) {
-        let new_node = Box::new(Node::new(element, mem::replace(&mut self.head, None)));
-        self.head = Some(new_node);
+        self.head = Some(Box::new(Node::new(
+            element,
+            mem::replace(&mut self.head, None),
+        )));
     }
 
     pub fn pop(&mut self) -> Option<T> {
