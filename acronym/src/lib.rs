@@ -18,12 +18,7 @@ pub fn abbreviate(phrase: &str) -> String {
     let mut s = String::new();
     for w in words {
         if is_camel_case(w) {
-            s.push_str(
-                w.chars()
-                    .filter(|c| c.is_uppercase())
-                    .collect::<String>()
-                    .as_str(),
-            );
+            s.push_str(w.chars().filter(|c| c.is_uppercase()).collect::<String>().as_str());
         } else {
             s.push(w.chars().next().unwrap().to_uppercase().next().unwrap())
         }
