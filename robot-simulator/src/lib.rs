@@ -1,6 +1,3 @@
-// The code below is a stub. Just enough to satisfy the compiler.
-// In order to pass the tests you can add-to or change any of this code.
-
 #[derive(PartialEq, Debug)]
 pub enum Direction {
     North,
@@ -9,37 +6,79 @@ pub enum Direction {
     West,
 }
 
-pub struct Robot;
+pub struct Robot {
+    x: i32,
+    y: i32,
+    d: Direction,
+}
+
+use Direction::{East, North, South, West};
 
 impl Robot {
     pub fn new(x: i32, y: i32, d: Direction) -> Self {
-        unimplemented!("Create a robot at (x, y) ({}, {}) facing {:?}", x, y, d,)
+        Robot { x, y, d }
     }
 
     pub fn turn_right(self) -> Self {
-        unimplemented!()
+        Robot {
+            d: match self.d {
+                North => East,
+                East => South,
+                South => West,
+                West => North,
+            },
+            ..self
+        }
     }
 
     pub fn turn_left(self) -> Self {
-        unimplemented!()
+        Robot {
+            d: match self.d {
+                North => West,
+                East => North,
+                South => East,
+                West => South,
+            },
+            ..self
+        }
     }
 
     pub fn advance(self) -> Self {
-        unimplemented!()
+        match self.d {
+            North => Robot {
+                y: self.y + 1,
+                ..self
+            },
+            East => Robot {
+                x: self.x + 1,
+                ..self
+            },
+            South => Robot {
+                y: self.y - 1,
+                ..self
+            },
+            West => Robot {
+                x: self.x - 1,
+                ..self
+            },
+        }
     }
 
     pub fn instructions(self, instructions: &str) -> Self {
-        unimplemented!(
-            "Follow the given sequence of instructions: {}",
-            instructions
-        )
+        match instructions.chars().nth(0) {
+            Some('R') => self.turn_right().instructions(&instructions[1..]),
+            Some('L') => self.turn_left().instructions(&instructions[1..]),
+            Some('A') => self.advance().instructions(&instructions[1..]),
+            Some(_) => self.instructions(&instructions[1..]),
+            None => self,
+        }
     }
 
     pub fn position(&self) -> (i32, i32) {
-        unimplemented!()
+        (self.x, self.y)
     }
 
     pub fn direction(&self) -> &Direction {
-        unimplemented!()
+        &self.d
     }
 }
