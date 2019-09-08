@@ -11,17 +11,16 @@ pub struct Queen {
 
 impl ChessPosition {
     pub fn new(rank: i32, file: i32) -> Option<Self> {
-        if rank < 0 || rank > 7 || file < 0 || file > 7 {
-            None
-        } else {
-            Some(ChessPosition { rank, file })
+        match (rank, file) {
+            (0..=7, 0..=7) => Some(ChessPosition { rank, file }),
+            _ => None,
         }
     }
 
     pub fn can_attack(&self, other: &ChessPosition) -> bool {
-        self.file == other.file
-            || self.rank == other.rank
-            || (self.file - other.file).abs() == (self.rank - other.rank).abs()
+        let df = self.file - other.file;
+        let dr = self.rank - other.rank;
+        df == 0 || dr == 0 || df.abs() == dr.abs()
     }
 }
 
