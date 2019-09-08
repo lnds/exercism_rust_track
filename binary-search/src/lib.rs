@@ -1,22 +1,21 @@
-
-pub fn find<T>(array: &[T], key: T) -> Option<usize>
-where 
-    T:  PartialEq+PartialOrd+Clone,
+pub fn find<T, R>(array: R, key: T) -> Option<usize>
+where
+    T: PartialEq + PartialOrd,
+    R: AsRef<[T]>,
 {
-    match array.len() {
+    let ar = array.as_ref();
+    match ar.len() {
         0 => None,
-        1 if key == array[0] => Some(0),
+        1 if key == ar[0] => Some(0),
         1 => None,
         n => {
             let m = n / 2;
-            if array[m] == key {
+            if ar[m] == key {
                 Some(m)
-            } else if array[m] > key {
-                let (l, _) = array.split_at(m);
-                find(l, key)
+            } else if ar[m] > key {
+                ar.get(..m).map(|l| find(l, key)).unwrap()
             } else {
-                let (_, r) = array.split_at(m);
-                find(r, key).map(|k| m + k)
+                ar.get(m..).map(|r| find(r, key).map(|k| m + k)).unwrap()
             }
         }
     }
