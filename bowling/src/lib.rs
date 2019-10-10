@@ -4,10 +4,42 @@ pub enum Error {
     GameComplete,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum State {
+    NotPlayed,
+    Waiting(u16),
+    Open,
+    Spare,
+    Strike,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State::NotPlayed
+    }
+}
+
+#[derive(Default, Copy, Clone)]
+struct Frame(Option<u16>, Option<u16>, State);
+
+use State::*;
+
+impl Frame {
+    fn roll(self, pins: u16) -> Result<Frame, Error> {
+        match self {
+            Frame(None, None, NotPlayed) if pins < 10 => Ok(Frame(Some(pins), None, Waiting(10 - pins))),
+            Frame(None, None, NotPlayed) if pins == 10 => Ok(Frame(Some(pins), None, Strike)),
+            Frame(Some(score), None, Waiting(_)) if pins + score == 10 => Ok(Frame(Some(score), Some(pins), Spare)),
+            Frame(Some(score), None, Waiting(_)) if pins + score < 10 => Ok(Frame(Some(score), Some(pins), Open)),
+            _ => Err(Error::NotEnoughPinsLeft),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct BowlingGame {
-    position: usize,
-    throws: [Option<u16>; 21],
+    frame: usize,
+    frames: [Frame; 12],
 }
 
 impl BowlingGame {
@@ -19,98 +51,49 @@ impl BowlingGame {
         if self.game_ended() {
             return Err(Error::GameComplete);
         }
-        if self.position == 20 {
-            let pre_score = self.throws[18].unwrap();
-            let score = self.throws[19].unwrap();
-            self.position = 21;
-            match pins {
-                0..=10 => match pins {
-                    0..=10 if score == 10 || pre_score + score == 10 || score + pins <= 10 => {
-                        self.throws[20] = Some(pins);
-                        Ok(())
-                    }
-                    _ => Err(Error::NotEnoughPinsLeft),
-                },
-                _ => {
-                    if score + pins <= 10 {
-                        self.throws[20] = Some(pins);
-                        Ok(())
-                    } else {
-                        Err(Error::NotEnoughPinsLeft)
-                    }
+        let frame = self.frames[self.frame];
+        let result = frame.roll(pins);
+        match result {
+            Ok(frame) => {
+                self.frames[self.frame] = frame;
+                let Frame(_, _, state) = frame;
+                if state == Open || state == Strike || state == Spare {
+                    self.frame += 1
                 }
+                Ok(())
             }
-        } else if self.position % 2 == 0 {
-            match pins {
-                0..=9 => {
-                    self.throws[self.position] = Some(pins);
-                    self.position += 1;
-                    Ok(())
-                }
-                10 => {
-                    self.throws[self.position] = Some(pins);
-                    self.position += if self.position == 18 { 1 } else { 2 };
-                    Ok(())
-                }
-                _ => Err(Error::NotEnoughPinsLeft),
-            }
-        } else {
-            let score = self.throws[self.position - 1].unwrap();
-            match score + pins {
-                0..=10 => {
-                    self.throws[self.position] = Some(pins);
-                    self.position += 1;
-                    Ok(())
-                }
-                _ if score == 10 => match pins {
-                    0..=10 => {
-                        self.throws[self.position] = Some(pins);
-                        self.position += 1;
-                        Ok(())
-                    }
-                    _ => Err(Error::NotEnoughPinsLeft),
-                },
-                _ => Err(Error::NotEnoughPinsLeft),
-            }
+            Err(e) => Err(e),
         }
     }
 
     fn game_ended(&self) -> bool {
-        (self.position == 21
-            && (self.throws[18].unwrap() == 10
-                || self.throws[18].unwrap() + self.throws[19].unwrap() == 10))
-            || (self.position == 20
-                && (self.throws[18].unwrap() < 10
-                    && self.throws[18].unwrap() + self.throws[19].unwrap() < 10))
+        let Frame(_, _, a) = self.frames[9];
+        let Frame(_, _, b) = self.frames[10];
+        let Frame(_, _, c) = self.frames[11];
+        match a {
+            Strike => (b == Strike && c != NotPlayed) || (b == Open || b == Spare),
+            Spare => b != NotPlayed,
+            Open => true,
+            _ => false,
+        }
     }
 
     pub fn score(&self) -> Option<u16> {
         if !self.game_ended() {
             return None;
         }
-        let mut frames = [0; 10];
-        for (i, item) in frames.iter_mut().enumerate() {
-            let j = i * 2;
-            if self.throws[j].unwrap() == 10 {
-                // strike
-                if i < 9 {
-                    if self.throws[j + 2].unwrap() < 10 {
-                        *item = 10 + self.throws[j + 2].unwrap() + self.throws[j + 3].unwrap()
-                    } else {
-                        *item = 20 + self.throws[j + 4].unwrap()
+        Some(
+            self.frames
+                .windows(3)
+                .map(|s| match s[0] {
+                    Frame(_, _, Strike) => {
+                        10 + s[1].0.unwrap() + s[1].1.unwrap_or_else(|| s[2].0.unwrap())
                     }
-                } else if self.throws[j + 1].unwrap() < 10 {
-                    *item = 10 + self.throws[j + 1].unwrap() + self.throws[j + 2].unwrap()
-                } else {
-                    *item = 20 + self.throws[j + 1].unwrap()
-                }
-            } else if self.throws[j].unwrap() + self.throws[j + 1].unwrap() == 10 {
-                // spare
-                *item = 10 + self.throws[j + 2].unwrap();
-            } else {
-                *item = self.throws[j].unwrap() + self.throws[j + 1].unwrap();
-            }
-        }
-        Some(frames.iter().sum())
+                    Frame(_, _, Spare) => 10 + s[1].0.unwrap(),
+                    Frame(Some(a), Some(b), Open) => a + b,
+                    _ => 0,
+                })
+                .sum(),
+        )
     }
 }
