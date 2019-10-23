@@ -13,7 +13,7 @@ impl<'a> HighScores<'a> {
     }
 
     pub fn latest(&self) -> Option<u32> {
-        self.scores.iter().last().copied()
+        self.scores.last().copied()
     }
 
     pub fn personal_best(&self) -> Option<u32> {
@@ -23,9 +23,6 @@ impl<'a> HighScores<'a> {
     pub fn personal_top_three(&self) -> Vec<u32> {
         let mut result = self.scores.to_vec();
         result.sort_by(|a, b| b.cmp(a));
-        if result.len() > 3 {
-            result.resize(3, 0)
-        }
-        result
+        result.into_iter().take(3).collect()
     }
 }
