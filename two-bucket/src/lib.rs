@@ -50,6 +50,7 @@ fn pour(capacity_1: u8, capacity_2: u8, goal: u8) -> (u8, u8, u8) {
     (from, to, step)
 }
 
+
 /// Solve the bucket problem
 pub fn solve(capacity_1: u8, capacity_2: u8, goal: u8, start_bucket: &Bucket) -> Option<BucketStats> {
     if goal > capacity_2 || goal % gcd(capacity_1, capacity_2) != 0 {
@@ -78,10 +79,6 @@ pub fn solve(capacity_1: u8, capacity_2: u8, goal: u8, start_bucket: &Bucket) ->
         }),
         Bucket::One => {
             let (from, to, steps) = pour(capacity_1, capacity_2, goal);
-            println!(
-                "CAP 1 ({}, {}, {}) -> from: {}, to: {}, step: {}, bucket: {:?}, goal: {}",
-                capacity_1, capacity_2, goal, from, to, steps, start_bucket, goal
-            );
             Some(BucketStats {
                 moves: steps,
                 goal_bucket: if goal == from {
@@ -92,14 +89,8 @@ pub fn solve(capacity_1: u8, capacity_2: u8, goal: u8, start_bucket: &Bucket) ->
                 other_bucket: if goal == from { to } else { from },
             })
         }
-        _ => {
+        Bucket::Two => {
             let (from, to, steps) = pour(capacity_2, capacity_1, goal);
-
-            println!(
-                "CAP 2  ({}, {}, {})  -> from: {}, to: {}, step: {}, bucket: {:?}, goal: {}",
-                capacity_1, capacity_2, goal, from, to, steps, start_bucket, goal
-            );
-
             Some(BucketStats {
                 moves: steps,
                 goal_bucket: if goal == from {
