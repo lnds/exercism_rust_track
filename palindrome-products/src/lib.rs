@@ -2,19 +2,20 @@ use std::collections::BTreeSet;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Palindrome {
+    value: u64,
     factors: BTreeSet<(u64, u64)>,
 }
 
 impl Palindrome {
     pub fn new(a: u64, b: u64) -> Palindrome {
-        let mut btree: BTreeSet<(u64, u64)> = BTreeSet::new();
-        btree.insert((a, b));
-        Palindrome { factors: btree }
+        Palindrome {
+            value: a * b,
+            factors: [(a, b)].iter().copied().collect(),
+        }
     }
 
     pub fn value(&self) -> u64 {
-        let (x, y) = self.factors.iter().last().unwrap();
-        x * y
+        self.value
     }
 
     pub fn insert(&mut self, a: u64, b: u64) {
