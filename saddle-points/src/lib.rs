@@ -5,15 +5,17 @@ pub fn find_saddle_points(input: &[Vec<u64>]) -> Vec<(usize, usize)> {
         .map(|col| (0..height).map(|row| input[row][col]).collect::<Vec<u64>>())
         .collect::<Vec<_>>();
 
-    input.iter().enumerate().flat_map(|(i, row)| {
-        cols.iter().enumerate().flat_map(move |(j, col)| {
-            let min = col.iter().min().unwrap();
-            let max = row.iter().max().unwrap();
-            if min == max {
-                Some((i, j))
-            } else {
-                None
-            }
+    input
+        .iter()
+        .enumerate()
+        .flat_map(|(i, row)| {
+            cols.iter().enumerate().flat_map(move |(j, col)| {
+                if col.iter().min().unwrap() == row.iter().max().unwrap() {
+                    Some((i, j))
+                } else {
+                    None
+                }
+            })
         })
-    }).collect()
+        .collect()
 }
