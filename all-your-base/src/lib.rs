@@ -52,17 +52,15 @@ pub fn convert(number: &[u32], from_base: u32, to_base: u32) -> Result<Vec<u32>,
             if *n < from_base {
                 Ok(acum * from_base + *n)
             } else {
-                return Err(Error::InvalidDigit(*n));
+                Err(Error::InvalidDigit(*n))
             }
         }
     })?;
 
     let mut result = vec![];
     while value > 0 {
-        let n = value % to_base;
-        result.push(n);
+        result.insert(0, value % to_base);
         value /= to_base;
     }
-    result.reverse();
     Ok(result)
 }
