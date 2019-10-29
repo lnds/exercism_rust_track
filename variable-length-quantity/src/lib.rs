@@ -6,19 +6,15 @@ pub enum Error {
 
 /// Convert a list of numbers to a stream of bytes encoded with variable length encoding.
 pub fn to_bytes(values: &[u32]) -> Vec<u8> {
-    let mut result: Vec<u8> = vec![];
-    for w in values.iter() {
-        let mut v = vec![];
-        let mut b = *w;
-        v.insert(0, (b & 0x7f) as u8);
-        b >>= 7;
-        while b > 0 {
-            v.insert(0, (b & 0x7f) as u8 | 0x80);
-            b >>= 7;
+    values.iter().flat_map(|&n| {
+        let mut v = vec![0x7f & n as u8];
+        let mut n = n >> 7;
+        while n > 0 {
+            v.insert(0, 0x7f & n as u8 | 0x80);
+            n >>= 7;
         }
-        result.append(&mut v);
-    }
-    result
+        v
+    }).collect()
 }
 
 /// Given a stream of bytes, extract all numbers which are encoded in there.
