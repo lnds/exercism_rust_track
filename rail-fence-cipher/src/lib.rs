@@ -30,13 +30,11 @@ impl RailFence {
 
     pub fn decode(&self, cipher: &str) -> String {
         let m: i32 = self.rails as i32;
-        let n = cipher.len();
-        let mut fences = vec![vec!['\0'; n]; m as usize];
+        let mut fences = vec![String::new(); m as usize];
         let mut row: i32 = 0;
         let mut delta: i32 = 1;
-        println!("cipher = {}", cipher);
-        for i in 0..cipher.len() {
-            fences[row as usize][i] = '?';
+        for _ in 0..cipher.len() {
+            fences[row as usize].push('?');
             row += delta;
             if row == m {
                 delta = -1;
@@ -46,24 +44,20 @@ impl RailFence {
                 row = 1;
             }
         }
-        println!("fences: [{:?}]", fences);
 
-        let mut iter = cipher.chars();
-        for fence in fences.iter_mut() {
-            for r in fence.iter_mut() {
-                if *r == '?' {
-                    *r = iter.next().unwrap();
-                }
-            }
-        }
+        let mut iter = cipher.to_string();
+        fences.iter_mut().for_each(|fence| {
+            let n = fence.len();
+            *fence = iter[..n].to_string();
+            iter = iter[n..].to_string();
+        });
 
         let mut result = String::new();
         row = 0;
         delta = 1;
-        for i in 0..cipher.len() {
-            if fences[row as usize][i] > '\0' {
-                result.push(fences[row as usize][i]);
-            }
+        for _ in 0..cipher.len() {
+            let fence = &mut fences[row as usize];
+            result.push(fence.remove(0));
             row += delta;
             if row == m {
                 delta = -1;
