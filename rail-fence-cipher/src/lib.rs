@@ -10,13 +10,12 @@ impl RailFence {
     }
 
     pub fn encode(&self, text: &str) -> String {
-        let n = text.len();
         let m: i32 = self.rails as i32;
-        let mut fences = vec![vec!['\0'; n]; m as usize];
         let mut row: i32 = 0;
         let mut delta: i32 = 1;
-        for (i, c) in text.chars().enumerate() {
-            fences[row as usize][i] = c;
+        let mut fences = vec![String::new();m as usize];
+        for c in text.chars() {
+            fences[row as usize].push(c);
             row += delta;
             if row == m {
                 delta = -1;
@@ -26,11 +25,7 @@ impl RailFence {
                 row = 1;
             }
         }
-        fences
-            .iter()
-            .map(|fence| fence.iter().filter(|&c| *c > '\0'))
-            .map(|v| v.into_iter().collect::<String>())
-            .collect()
+        fences.join("")
     }
 
     pub fn decode(&self, cipher: &str) -> String {
