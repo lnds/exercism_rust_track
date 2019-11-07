@@ -11,38 +11,18 @@ impl RailFence {
 
     pub fn encode(&self, text: &str) -> String {
         let m: i32 = self.rails as i32;
-        let mut row: i32 = 0;
-        let mut delta: i32 = 1;
         let mut fences = vec![String::new();m as usize];
-        for c in text.chars() {
-            fences[row as usize].push(c);
-            row += delta;
-            if row == m {
-                delta = -1;
-                row = m - 2;
-            } else if row < 0 {
-                delta = 1;
-                row = 1;
-            }
+        for (c, row) in text.chars().zip(zigzag(self.rails)) {
+            fences[row].push(c);
         }
         fences.join("")
     }
 
     pub fn decode(&self, cipher: &str) -> String {
-        let m: i32 = self.rails as i32;
+        let m = self.rails as i32;
         let mut fences = vec![String::new(); m as usize];
-        let mut row: i32 = 0;
-        let mut delta: i32 = 1;
-        for _ in 0..cipher.len() {
+        for (_, row) in cipher.chars().zip(zigzag(self.rails)) {
             fences[row as usize].push('?');
-            row += delta;
-            if row == m {
-                delta = -1;
-                row = m - 2;
-            } else if row < 0 {
-                delta = 1;
-                row = 1;
-            }
         }
 
         let mut iter = cipher.to_string();
@@ -53,20 +33,15 @@ impl RailFence {
         });
 
         let mut result = String::new();
-        row = 0;
-        delta = 1;
-        for _ in 0..cipher.len() {
+        for (_, row) in cipher.chars().zip(zigzag(self.rails)) {
             let fence = &mut fences[row as usize];
             result.push(fence.remove(0));
-            row += delta;
-            if row == m {
-                delta = -1;
-                row = m - 2;
-            } else if row < 0 {
-                delta = 1;
-                row = 1;
-            }
         }
         result
     }
+}
+
+
+fn zigzag(n: usize) -> impl Iterator<Item = usize> {
+    (0..n - 1).chain((1..n).rev()).cycle()
 }
