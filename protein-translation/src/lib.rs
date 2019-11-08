@@ -12,7 +12,7 @@ impl<'a> CodonsInfo<'a> {
     pub fn of_rna(&self, rna: &str) -> Option<Vec<&'a str>> {
         rna.chars().collect::<Vec<_>>().chunks(3).map(|chunk|{
             let key : &str = &chunk.iter().collect::<String>();
-            self.data.get(key).copied()
+            self.name_for(key)
         }).take_while(|p|*p!=Some("stop codon")).collect()
     }
 }
