@@ -17,12 +17,6 @@ pub fn convert(input: &str) -> Result<String, Error> {
     if cols % 3 != 0 {
         return Err(Error::InvalidColumnCount(cols / rows));
     }
-    if cols == 12 {
-        return Ok(parse_num(&lines.join("")));
-    }
-    if rows == 4 {
-        return Ok(parse_row(&lines));
-    }
     Ok(parse_rows(&lines))
 }
 
