@@ -67,8 +67,7 @@ impl<'a, T: Copy + PartialEq> Reactor<'a, T> {
 
     // Creates an input cell with the specified initial value, returning its ID.
     pub fn create_input(&mut self, value: T) -> InputCellID {
-        let id = self.input_cells.len();
-        let cell = InputCellID(id);
+        let cell = InputCellID(self.input_cells.len());
         self.input_cells.push(InputCell { value });
         cell
     }
@@ -139,33 +138,36 @@ impl<'a, T: Copy + PartialEq> Reactor<'a, T> {
     // a `set_value(&mut self, new_value: T)` method on `Cell`.
     //
     // As before, that turned out to add too much extra complexity.
-    pub fn set_value(&mut self, id: InputCellID, value: T) -> bool {
-        if let Some(cell) = self.input_cells.get_mut(id.0) {
-            cell.value = value;
-
-            let mut compute_values: Vec<_> = self.compute_cells.iter().map(|c| c.value).collect();
-            for (i, compute_cell) in self.compute_cells.iter_mut().enumerate() {
-                let mut dep_values = Vec::new();
-                for &dep in &compute_cell.dependencies {
-                    dep_values.push(match dep {
-                        CellID::Input(InputCellID(index)) => self.input_cells[index].value,
-                        CellID::Compute(ComputeCellID(index)) => compute_values[index],
-                    })
-                }
-                let new_value = (compute_cell.func)(&dep_values);
-                if new_value != compute_values[i] {
-                    compute_values[i] = new_value;
-                    for callback in compute_cell.callbacks.values_mut() {
-                        callback(new_value)
+    pub fn set_value(&mut self, InputCellID(index): InputCellID, value: T) -> bool {
+        match self.input_cells.get_mut(index) {
+            None => false,
+            Some(cell) => {
+                cell.value = value;
+                let mut compute_values: Vec<_> =
+                    self.compute_cells.iter().map(|c| c.value).collect();
+                let input_values: Vec<_> = self.input_cells.iter().map(|c| c.value).collect();
+                for (i, compute_cell) in self.compute_cells.iter_mut().enumerate() {
+                    let dep_values = compute_cell
+                        .dependencies
+                        .iter()
+                        .map(|dep| match dep {
+                            CellID::Input(InputCellID(index)) => input_values[*index],
+                            CellID::Compute(ComputeCellID(index)) => compute_values[*index],
+                        })
+                        .collect::<Vec<_>>();
+                    let new_value = (compute_cell.func)(&dep_values);
+                    if new_value != compute_values[i] {
+                        compute_values[i] = new_value;
+                        for callback in compute_cell.callbacks.values_mut() {
+                            callback(new_value)
+                        }
                     }
                 }
+                for (i, &compute_value) in compute_values.iter().enumerate() {
+                    self.compute_cells[i].value = compute_value;
+                }
+                true
             }
-            for (i, &compute_value) in compute_values.iter().enumerate() {
-                self.compute_cells[i].value = compute_value;
-            }
-            true
-        } else {
-            false
         }
     }
 
@@ -212,7 +214,7 @@ impl<'a, T: Copy + PartialEq> Reactor<'a, T> {
             Some(cell) => cell
                 .callbacks
                 .remove(&callback_id)
-                .map_or(Err(RemoveCallbackError::NonexistentCallback), |_| Ok(())),
+                .map(|_|()).ok_or(RemoveCallbackError::NonexistentCallback),
         }
     }
 }
