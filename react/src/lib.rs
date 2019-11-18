@@ -214,7 +214,8 @@ impl<'a, T: Copy + PartialEq> Reactor<'a, T> {
             Some(cell) => cell
                 .callbacks
                 .remove(&callback_id)
-                .map(|_|()).ok_or(RemoveCallbackError::NonexistentCallback),
+                .map(|_| ())
+                .ok_or(RemoveCallbackError::NonexistentCallback),
         }
     }
 }
