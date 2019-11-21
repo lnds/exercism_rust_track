@@ -13,13 +13,11 @@ impl From<u64> for Duration {
 }
 
 pub trait Planet {
-    fn years_during(d: &Duration) -> f64 {
-        let year_in_seconds = 365.25 * 24.0 * 3600.0 * Self::factor();
-        d.seconds / year_in_seconds
-    }
+    const F: f64;
 
-    fn factor() -> f64 {
-        unimplemented!()
+    fn years_during(d: &Duration) -> f64 {
+        let year_in_seconds = 31_557_600.0 * Self::F;
+        d.seconds / year_in_seconds
     }
 }
 
@@ -33,44 +31,28 @@ pub struct Uranus;
 pub struct Neptune;
 
 impl Planet for Mercury {
-    fn factor() -> f64 {
-        0.240_846_7
-    }
+    const F: f64 = 0.240_846_7;
 }
 impl Planet for Venus {
-    fn factor() -> f64 {
-        0.615_197_26
-    }
+    const F: f64 = 0.615_197_26;
 }
 
 impl Planet for Earth {
-    fn factor() -> f64 {
-        1.0
-    }
+    const F: f64 = 1.0;
 }
 impl Planet for Mars {
-    fn factor() -> f64 {
-        1.880_815_8
-    }
+    const F: f64 = 1.880_815_8;
 }
 impl Planet for Jupiter {
-    fn factor() -> f64 {
-        11.862_615
-    }
+    const F: f64 = 11.862_615;
 }
 impl Planet for Saturn {
-    fn factor() -> f64 {
-        29.447_498
-    }
+    const F: f64 = 29.447_498;
 }
 impl Planet for Uranus {
-    fn factor() -> f64 {
-        84.016_846
-    }
+    const F: f64 = 84.016_846;
 }
 
 impl Planet for Neptune {
-    fn factor() -> f64 {
-        164.79132
-    }
+    const F: f64 = 164.79132;
 }
