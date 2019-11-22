@@ -17,10 +17,10 @@ pub fn encode(plaintext: &str, a: i32, b: i32) -> Result<String, AffineCipherErr
             .to_lowercase()
             .chars()
             .flat_map(|c| {
-                if c.is_alphabetic() {
+                if c.is_ascii_alphabetic() {
                     let c = i32::from(c as u8 - b'a');
-                    let enc = (c * a + b) % M;
-                    Some(char::from(enc as u8 + b'a'))
+                    let c = (c * a + b) % M;
+                    Some(char::from(c as u8 + b'a'))
                 } else if c.is_numeric() {
                     Some(c)
                 } else {
@@ -38,18 +38,15 @@ pub fn encode(plaintext: &str, a: i32, b: i32) -> Result<String, AffineCipherErr
 /// Decodes the ciphertext using the affine cipher with key (`a`, `b`). Note that, rather than
 /// returning a return code, the more common convention in Rust is to return a `Result`.
 pub fn decode(ciphertext: &str, a: i32, b: i32) -> Result<String, AffineCipherError> {
-    if !coprime(a, M) {
-        return Err(AffineCipherError::NotCoprime(a));
-    }
-    let an = inverse(a, M);
-    let ad = inverse_additive(b, M);
+    let an = inverse(a, M)?;
+    let ad = inverse_additive(b, M)?;
     Ok(ciphertext
-        .bytes()
+        .chars()
         .flat_map(|x| {
-            if x >= b'a' && x <= b'z' {
-                let c = (i32::from(x - b'a') * an + ad * an) % M;
+            if x.is_ascii_alphabetic() {
+                let c = (i32::from(x as u8 - b'a') * an + ad * an) % M;
                 Some(char::from(c as u8 + b'a'))
-            } else if x >= b'0' && x <= b'9' {
+            } else if x.is_numeric() {
                 Some(x as char)
             } else {
                 None
@@ -74,20 +71,20 @@ fn gcd(a: i32, b: i32) -> i32 {
     }
 }
 
-fn inverse(a: i32, m: i32) -> i32 {
+fn inverse(a: i32, m: i32) -> Result<i32, AffineCipherError> {
     for n in 1..m {
         if (a * n) % m == 1 {
-            return n;
+            return Ok(n);
         }
     }
-    0
+    Err(AffineCipherError::NotCoprime(a))
 }
 
-fn inverse_additive(b: i32, m: i32) -> i32 {
+fn inverse_additive(b: i32, m: i32) -> Result<i32, AffineCipherError> {
     for i in 1..m {
         if (i + b) % m == 0 {
-            return i;
+            return Ok(i);
         }
     }
-    0
+    Err(AffineCipherError::NotCoprime(b))
 }
