@@ -39,10 +39,23 @@ pub fn encode(plaintext: &str, a: i32, b: i32) -> Result<String, AffineCipherErr
 /// returning a return code, the more common convention in Rust is to return a `Result`.
 pub fn decode(ciphertext: &str, a: i32, b: i32) -> Result<String, AffineCipherError> {
     if !coprime(a, M) {
-        Err(AffineCipherError::NotCoprime(a))
-    } else {
-        unimplemented!("Decode {} with the key ({}, {})", ciphertext, a, b);
+        return Err(AffineCipherError::NotCoprime(a));
     }
+    let an = inverse(a, M);
+    let ad = inverse_additive(b, M);
+    Ok(ciphertext
+        .bytes()
+        .flat_map(|x| {
+            if x >= b'a' && x <= b'z' {
+                let c = (i32::from(x - b'a') * an + ad * an) % M;
+                Some(char::from(c as u8 + b'a'))
+            } else if x >= b'0' && x <= b'9' {
+                Some(x as char)
+            } else {
+                None
+            }
+        })
+        .collect::<String>())
 }
 
 fn coprime(a: i32, b: i32) -> bool {
@@ -59,4 +72,22 @@ fn gcd(a: i32, b: i32) -> i32 {
     } else {
         gcd(a, b - a)
     }
+}
+
+fn inverse(a: i32, m: i32) -> i32 {
+    for n in 1..m {
+        if (a * n) % m == 1 {
+            return n;
+        }
+    }
+    0
+}
+
+fn inverse_additive(b: i32, m: i32) -> i32 {
+    for i in 1..m {
+        if (i + b) % m == 0 {
+            return i;
+        }
+    }
+    0
 }
