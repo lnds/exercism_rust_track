@@ -6,26 +6,20 @@ pub enum Comparison {
     Unequal,
 }
 
+fn comp_list<T: PartialEq>(short_list: &[T], long_list: &[T], result: Comparison) -> Comparison {
+    if short_list.is_empty() || long_list.windows(short_list.len()).any(|l| l == short_list) {
+        result
+    } else {
+        Comparison::Unequal
+    }
+}
+
 pub fn sublist<T: PartialEq>(first_list: &[T], second_list: &[T]) -> Comparison {
     if first_list == second_list {
         Comparison::Equal
+    } else if first_list.len() > second_list.len() {
+        comp_list(second_list, first_list, Comparison::Superlist)
     } else {
-        if first_list.len() > second_list.len() {
-            let delta = first_list.len() - second_list.len();
-            for d in 0..=delta {
-                if &first_list[d..first_list.len() - delta + d] == second_list {
-                    return Comparison::Superlist;
-                }
-            }
-            Comparison::Unequal
-        } else {
-            let delta = second_list.len() - first_list.len();
-            for d in 0..=delta {
-                if &second_list[d..second_list.len() - delta + d] == first_list {
-                    return Comparison::Sublist;
-                }
-            }
-            Comparison::Unequal
-        }
+        comp_list(first_list, second_list, Comparison::Sublist)
     }
 }
