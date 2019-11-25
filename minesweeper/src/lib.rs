@@ -7,34 +7,34 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
 }
 
 fn calc_near_mines(i: usize, row: &str, minefield: &[&str]) -> String {
-    let mut result = String::new();
     let north_row = expand_row(Row::North, i, row.len(), minefield);
     let south_row = expand_row(Row::South, i, row.len(), minefield);
     let this_row = expand_row(Row::This, i, row.len(), minefield);
-    for (j, c) in row.chars().enumerate() {
-        match c {
+    row.chars()
+        .enumerate()
+        .map(|(j, c)| match c {
             ' ' => {
                 let total = count_mines(j + 1, &this_row, &north_row, &south_row);
                 if total > 0 {
-                    result.push_str(&total.to_string())
+                    total.to_string()
                 } else {
-                    result.push(' ')
+                    " ".to_string()
                 }
             }
-            _ => result.push(c),
-        }
-    }
-    result
+            _ => c.to_string(),
+        })
+        .collect()
 }
 
 enum Row {
-    North,
     This,
+    North,
     South,
 }
 
 fn expand_row(row: Row, i: usize, len: usize, minefield: &[&str]) -> Vec<char> {
     match row {
+        Row::This => pad_row(minefield[i]),
         Row::North => {
             if i == 0 {
                 vec![' '; len + 2]
@@ -42,7 +42,6 @@ fn expand_row(row: Row, i: usize, len: usize, minefield: &[&str]) -> Vec<char> {
                 pad_row(minefield[i - 1])
             }
         }
-        Row::This => pad_row(minefield[i]),
         Row::South => {
             if i == minefield.len() - 1 {
                 vec![' '; len + 2]
