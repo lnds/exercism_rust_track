@@ -31,35 +31,25 @@ pub fn grep(pattern: &str, flags: &Flags, files: &[&str]) -> Result<Vec<String>,
     Ok(result.into_iter().flatten().collect())
 }
 
+
 fn grep_in_file(pat: &str, flags: &Flags, path: &str, mult: bool) -> Result<Vec<String>, Error> {
     let reader = BufReader::new(File::open(path)?);
-    let candidates: Vec<(usize, String)> = reader
+    let show_fn = alt_text(mult, format!("{}:", path));
+    let candidates : Vec<String> = reader
         .lines()
         .enumerate()
         .filter_map(move |(n, line)| match line {
             Ok(ref line) if contains(pat, &line, flags) => Some((n, line.clone())),
             _ => None,
-        })
-        .collect();
-    if flags.print_name_of_files && candidates.len() > 0 {
-        return Ok(vec![path.to_string()]);
-    }
-    let show_fn = if mult {
-        format!("{}:", path)
-    } else {
-        "".to_string()
-    };
-    Ok(candidates
-        .iter()
-        .map(|(n, line)| {
-            let show_ln = if flags.print_line_numbers {
-                format!("{}:", n + 1)
-            } else {
-                "".to_string()
-            };
+        }).map(|(n, line)| {
+            let show_ln = alt_text(flags.print_line_numbers, format!("{}:", n + 1));
             format!("{}{}{}", show_fn, show_ln, line)
         })
-        .collect())
+        .collect();
+    if flags.print_name_of_files && !candidates.is_empty(){
+        return Ok(vec![path.to_string()]);
+    }
+    Ok(candidates)
 }
 
 fn contains(pattern: &str, line: &str, flags: &Flags) -> bool {
@@ -84,4 +74,8 @@ fn contains(pattern: &str, line: &str, flags: &Flags) -> bool {
     } else {
         result
     }
+}
+
+fn alt_text(flag:bool, text: String) -> String {
+    if flag { text } else { "".to_string()}
 }
