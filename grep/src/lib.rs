@@ -32,28 +32,34 @@ pub fn grep(pattern: &str, flags: &Flags, files: &[&str]) -> Result<Vec<String>,
 }
 
 fn grep_in_file(pat: &str, flags: &Flags, path: &str, mult: bool) -> Result<Vec<String>, Error> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let mut result = vec![];
-    for (n, line) in reader.lines().enumerate() {
-        let line = line?;
-        if contains(pat, &line, flags) {
-            if flags.print_name_of_files {
-                result.push(path.to_string());
-                break;
-            }
-            let mut output: String = String::new();
-            if mult {
-                output += &format!("{}:", path);
-            }
-            if flags.print_line_numbers {
-                output += &format!("{}:", n + 1);
-            }
-            output += &line;
-            result.push(output);
-        }
+    let reader = BufReader::new(File::open(path)?);
+    let candidates: Vec<(usize, String)> = reader
+        .lines()
+        .enumerate()
+        .filter_map(move |(n, line)| match line {
+            Ok(ref line) if contains(pat, &line, flags) => Some((n, line.clone())),
+            _ => None,
+        })
+        .collect();
+    if flags.print_name_of_files && candidates.len() > 0 {
+        return Ok(vec![path.to_string()]);
     }
-    Ok(result)
+    let show_fn = if mult {
+        format!("{}:", path)
+    } else {
+        "".to_string()
+    };
+    Ok(candidates
+        .iter()
+        .map(|(n, line)| {
+            let show_ln = if flags.print_line_numbers {
+                format!("{}:", n + 1)
+            } else {
+                "".to_string()
+            };
+            format!("{}{}{}", show_fn, show_ln, line)
+        })
+        .collect())
 }
 
 fn contains(pattern: &str, line: &str, flags: &Flags) -> bool {
