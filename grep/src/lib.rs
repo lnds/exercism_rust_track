@@ -1,4 +1,6 @@
 use failure::Error;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 #[derive(Debug)]
 pub struct Flags {
@@ -11,62 +13,38 @@ pub struct Flags {
 
 impl Flags {
     pub fn new(flags: &[&str]) -> Self {
-        let mut print_line_numbers: bool = false;
-        let mut print_name_of_files: bool = false;
-        let mut case_insensitive: bool = false;
-        let mut invert_search: bool = false;
-        let mut match_entire_lines: bool = false;
-        for &flag in flags.iter() {
-            match flag {
-                "-n" => print_line_numbers = true,
-                "-l" => print_name_of_files = true,
-                "-i" => case_insensitive = true,
-                "-v" => invert_search = true,
-                "-x" => match_entire_lines = true,
-                _ => panic!("invalid flag!{}", flag),
-            }
-        }
         Flags {
-            print_line_numbers,
-            print_name_of_files,
-            case_insensitive,
-            invert_search,
-            match_entire_lines,
+            print_line_numbers: flags.contains(&"-n"),
+            print_name_of_files: flags.contains(&"-l"),
+            case_insensitive: flags.contains(&"-i"),
+            invert_search: flags.contains(&"-v"),
+            match_entire_lines: flags.contains(&"-x"),
         }
     }
 }
 
 pub fn grep(pattern: &str, flags: &Flags, files: &[&str]) -> Result<Vec<String>, Error> {
-    let mut result = vec![];
-    let multiples = files.len() > 1;
-    for file in files.iter() {
-        let mut file_result = grep_in_file(pattern, flags, file, multiples)?;
-        result.append(&mut file_result);
-    }
-    Ok(result)
+    let result = files
+        .iter()
+        .map(|file| grep_in_file(pattern, flags, file, files.len() > 1))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(result.into_iter().flatten().collect())
 }
 
-fn grep_in_file(
-    pattern: &str,
-    flags: &Flags,
-    file_name: &str,
-    multiples: bool,
-) -> Result<Vec<String>, Error> {
-    use std::fs::File;
-    use std::io::{BufRead, BufReader};
-    let file = File::open(file_name)?;
+fn grep_in_file(pat: &str, flags: &Flags, path: &str, mult: bool) -> Result<Vec<String>, Error> {
+    let file = File::open(path)?;
     let reader = BufReader::new(file);
     let mut result = vec![];
     for (n, line) in reader.lines().enumerate() {
         let line = line?;
-        if contains(pattern, &line, flags) {
-            let mut output: String = String::new();
+        if contains(pat, &line, flags) {
             if flags.print_name_of_files {
-                result.push(file_name.to_string());
+                result.push(path.to_string());
                 break;
             }
-            if multiples {
-                output += &format!("{}:", file_name.to_string());
+            let mut output: String = String::new();
+            if mult {
+                output += &format!("{}:", path);
             }
             if flags.print_line_numbers {
                 output += &format!("{}:", n + 1);
@@ -79,22 +57,25 @@ fn grep_in_file(
 }
 
 fn contains(pattern: &str, line: &str, flags: &Flags) -> bool {
-    let mut pattern = pattern.to_string();
-    let mut line = line.to_string();
-    if flags.case_insensitive {
-        pattern = pattern.to_lowercase();
-        line = line.to_lowercase();
-    }
+    let pattern = if flags.case_insensitive {
+        pattern.to_lowercase()
+    } else {
+        pattern.to_string()
+    };
+    let line = if flags.case_insensitive {
+        line.to_lowercase()
+    } else {
+        line.to_string()
+    };
 
-    if flags.invert_search {
-        if flags.match_entire_lines {
-            pattern != line
-        } else {
-            !line.contains(&pattern)
-        }
-    } else if flags.match_entire_lines {
+    let result = if flags.match_entire_lines {
         pattern == line
     } else {
         line.contains(&pattern)
+    };
+    if flags.invert_search {
+        !result
+    } else {
+        result
     }
 }
