@@ -69,13 +69,18 @@ fn lower(flags: &Flags, text: &str) -> String {
 }
 
 fn format_output(line: &str, n: usize, flags: &Flags, fname: &str, multi: bool) -> String {
-    let mut result = String::new();
-    if multi {
-        result += &format!("{}:", fname);
-    }
-    if flags.print_line_numbers {
-        result += &format!("{}:", n);
-    }
-    result += line;
-    result
+    format!(
+        "{}{}{}",
+        if multi {
+            format!("{}:", fname)
+        } else {
+            "".to_string()
+        },
+        if flags.print_line_numbers {
+            format!("{}:", n)
+        } else {
+            "".to_string()
+        },
+        line
+    )
 }
