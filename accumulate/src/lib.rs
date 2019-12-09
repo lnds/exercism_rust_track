@@ -1,4 +1,3 @@
-/// What should the type of _function be?
 pub fn map<F, T, R>(input: Vec<T>, mut function: F) -> Vec<R>
 where
     F: FnMut(T) -> R,
