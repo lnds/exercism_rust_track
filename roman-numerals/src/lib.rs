@@ -18,22 +18,26 @@ impl From<u32> for Roman {
     }
 }
 
-fn part(num: usize, digit: usize) -> usize {
-    num % (digit * 10) / digit
-}
-
-
-
 fn parse_roman(num: usize) -> String {
-    let unit = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
-    let tens = ["", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"];
-    let hundreds = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"];
-    let thousands = ["", "M", "MM", "MMM"];
     format!(
         "{}{}{}{}",
-        thousands[part(num, 1000)],
-        hundreds[part(num, 100)],
-        tens[part(num, 10)],
-        unit[part(num, 1)]
+        unit(part(num, 1000), "M", "", ""),
+        unit(part(num, 100), "C", "D", "M"),
+        unit(part(num, 10), "X", "L", "C"),
+        unit(part(num, 1), "I", "V", "X")
     )
+}
+
+fn unit(part: usize, base: &str, mid: &str, limit: &str) -> String {
+    match part {
+        1 | 2 | 3 => base.repeat(part),
+        4 => format!("{}{}", base, mid),
+        5 | 6 | 7 | 8 => format!("{}{}", mid, base.repeat(part - 5)),
+        9 => format!("{}{}", base, limit),
+        _ => "".to_string(),
+    }
+}
+
+fn part(num: usize, digit: usize) -> usize {
+    num % (digit * 10) / digit
 }
