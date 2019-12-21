@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::thread;
 
@@ -13,17 +14,20 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
         .map(|chunk| {
             chunk
                 .iter()
-                .flat_map(|s| s.chars().
-                filter(|c|c.is_alphabetic()).
-                filter_map(|c| c.to_lowercase().next()))
+                .flat_map(|s| {
+                    s.chars()
+                })
                 .collect()
         })
         .map(|chunk: Vec<char>| {
             thread::spawn(move || {
-                chunk.into_iter().fold(HashMap::new(), |mut map, c| {
-                    *map.entry(c).or_insert(0) += 1;
-                    map
-                })
+                chunk.into_iter().filter(|c| c.is_alphabetic())
+                .filter_map(|c| c.to_lowercase().next())
+                    .sorted()
+                    .group_by(|&c| c)
+                    .into_iter()
+                    .map(|(c, g)| (c, g.count()))
+                    .collect::<HashMap<char, usize>>()
             })
         })
         .collect::<Vec<_>>();
