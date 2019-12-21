@@ -1,12 +1,39 @@
 use std::collections::HashMap;
+use std::thread;
 
 pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
-    unimplemented!(
-        "Count the frequency of letters in the given input '{:?}'. Ensure that you are using {} to process the input.",
-        input,
-        match worker_count {
-            1 => format!("1 worker"),
-            _ => format!("{} workers", worker_count),
-        }
-    );
+    let chunk_size = if input.len() > worker_count {
+        input.len() / worker_count + 1
+    } else {
+        1
+    };
+
+    let threads = input
+        .chunks(chunk_size)
+        .map(|chunk| {
+            chunk
+                .iter()
+                .flat_map(|s| s.chars().
+                filter(|c|c.is_alphabetic()).
+                filter_map(|c| c.to_lowercase().next()))
+                .collect()
+        })
+        .map(|chunk: Vec<char>| {
+            thread::spawn(move || {
+                chunk.into_iter().fold(HashMap::new(), |mut map, c| {
+                    *map.entry(c).or_insert(0) += 1;
+                    map
+                })
+            })
+        })
+        .collect::<Vec<_>>();
+    threads
+        .into_iter()
+        .map(|thread| thread.join().unwrap())
+        .fold(HashMap::new(), |mut map, freqs| {
+            freqs
+                .into_iter()
+                .for_each(|(k, v)| *map.entry(k).or_insert(0) += v);
+            map
+        })
 }
