@@ -29,9 +29,6 @@ impl Forth {
     }
 
     pub fn eval(&mut self, input: &str) -> ForthResult {
-        println!("eval (input={})", input);
-        println!("stack = {:?}", self.runtime_stack);
-        println!("defs = {:?}", self.defs);
         let input = input.to_uppercase();
         let tokens = input.split_whitespace();
         let mut inside_def = false;
@@ -55,8 +52,6 @@ impl Forth {
                     .collect::<Vec<String>>();
 
                     self.defs.insert(word.to_string(), body);
-                    println!("definio: {} como {:?}", word, def_body);
-                    println!("defs = {:?}", self.defs);
                 } else {
                     def_body.push(token.to_string());
                 }
@@ -121,8 +116,6 @@ impl Forth {
                                 let mut forth = Forth::new();
                                 forth.set_stack(self.stack());
                                 let code = self.defs.get(val).ok_or(Error::UnknownWord)?;
-                                let eval_code = &code.join(" ");
-                                println!("eval code = {}", eval_code);
                                 forth.eval(&code.join(" "))?;
                                 self.set_stack(forth.stack());
                             }
@@ -142,7 +135,6 @@ impl Forth {
     }
 
     fn push(&mut self, val: Value) {
-        println!("push {}", val);
         self.runtime_stack.push(val);
     }
 
