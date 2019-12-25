@@ -30,88 +30,89 @@ impl Forth {
 
     pub fn eval(&mut self, input: &str) -> ForthResult {
         let input = input.to_uppercase();
-        let tokens = input.split_whitespace();
-        let mut inside_def = false;
-        let mut def_body : Vec<String> = Vec::new();
-        for token in tokens {
-            if inside_def {
-                if token == ";" {
-                    inside_def = false;
+        let mut tokens = input.split_whitespace();
+        while let Some(token) = tokens.next() {
+            match token {
+                ":" => {
+                    let mut def_body = Vec::new();
+                    let mut end_loop = false;
+                    while !end_loop {
+                        let token_opt = tokens.next();
+                        match token_opt {
+                            None => Err(Error::InvalidWord)?,
+                            Some(";") => end_loop = true,
+                            Some(token) => def_body.push(token.to_string()),
+                        }
+                    }
                     let word = &def_body.first().ok_or(Error::StackUnderflow)?;
                     if word.chars().all(|c| c.is_digit(10)) {
                         return Err(Error::InvalidWord);
                     }
-                    let body = def_body.clone().into_iter().skip(1)
-                    .flat_map(|w| {
-                        if let Some(v) = self.defs.get(&w.to_string()) {
+                    let body = def_body
+                        .clone()
+                        .into_iter()
+                        .skip(1)
+                        .flat_map(|w| {
+                            if let Some(v) = self.defs.get(&w.to_string()) {
                                 v.clone()
-                        } else {
-                            vec![w.to_string()]
-                        }
-                    })
-                    .collect::<Vec<String>>();
-
+                            } else {
+                                vec![w.to_string()]
+                            }
+                        })
+                        .collect::<Vec<String>>();
                     self.defs.insert(word.to_string(), body);
-                } else {
-                    def_body.push(token.to_string());
                 }
-            } else {
-                match token {
-                    ":"  => {
-                        inside_def = true;
-                        def_body = Vec::new();
+                "+" if !self.defs.contains_key(token) => {
+                    let val = self.pop()? + self.pop()?;
+                    self.push(val);
+                }
+                "-" if !self.defs.contains_key(token) => {
+                    let a = self.pop()?;
+                    let b = self.pop()?;
+                    self.push(b - a);
+                }
+                "*" if !self.defs.contains_key(token) => {
+                    let val = self.pop()? * self.pop()?;
+                    self.push(val);
+                }
+                "/" if !self.defs.contains_key(token) => {
+                    let a = self.pop()?;
+                    let b = self.pop()?;
+                    if a == 0 {
+                        return Err(Error::DivisionByZero);
                     }
-                    "+" if !self.defs.contains_key(token)=> {
-                        let val = self.pop()? + self.pop()?;
-                        self.push(val);
-                    }
-                    "-" if !self.defs.contains_key(token) => {
-                        let a = self.pop()?;
-                        let b = self.pop()?;
-                        self.push(b - a);
-                    }
-                    "*" if !self.defs.contains_key(token)=> {
-                        let val = self.pop()? * self.pop()?;
-                        self.push(val);
-                    }
-                    "/" if !self.defs.contains_key(token) => {
-                        let a = self.pop()?;
-                        let b = self.pop()?;
-                        if a == 0 {
-                            return Err(Error::DivisionByZero);
-                        }
-                        self.push(b / a);
-                    }
-                   
-                    "DUP" if !self.defs.contains_key(token) => {
-                        let val = self.pop()?;
-                        self.push(val);
-                        self.push(val);
-                    }
-                    "DROP" if !self.defs.contains_key("DROP") => {
-                        self.pop()?;
-                    }
-                    "SWAP" if !self.defs.contains_key("SWAP")=> {
-                        let a = self.pop()?;
-                        let b = self.pop()?;
-                        self.push(a);
-                        self.push(b);
-                    }
-                    "OVER" if !self.defs.contains_key("OVER") => {
-                        let a = self.pop()?;
-                        let b = self.pop()?;
-                        self.push(b);
-                        self.push(a);
-                        self.push(b);
-                    }
-                    val  => {
-                        println!("val is {}", val);
-                     match val.parse::<Value>() {
+                    self.push(b / a);
+                }
+
+                "DUP" if !self.defs.contains_key(token) => {
+                    let val = self.pop()?;
+                    self.push(val);
+                    self.push(val);
+                }
+                "DROP" if !self.defs.contains_key("DROP") => {
+                    self.pop()?;
+                }
+                "SWAP" if !self.defs.contains_key("SWAP") => {
+                    let a = self.pop()?;
+                    let b = self.pop()?;
+                    self.push(a);
+                    self.push(b);
+                }
+                "OVER" if !self.defs.contains_key("OVER") => {
+                    let a = self.pop()?;
+                    let b = self.pop()?;
+                    self.push(b);
+                    self.push(a);
+                    self.push(b);
+                }
+                val => {
+                    println!("val is {}", val);
+                    match val.parse::<Value>() {
                         Ok(num) => self.push(num),
                         _ => {
                             let key = val.to_uppercase();
-                            if !self.defs.contains_key(&key)  {
-                                return Err(Error::UnknownWord)
+                            if !self.defs.contains_key(&key) {
+                                return Err(Error::UnknownWord);
                             } else {
                                 let mut forth = Forth::new();
                                 forth.set_stack(self.stack());
@@ -119,13 +120,10 @@ impl Forth {
                                 forth.eval(&code.join(" "))?;
                                 self.set_stack(forth.stack());
                             }
-                        },
-                    }},
+                        }
+                    }
                 }
             }
-        }
-        if inside_def {
-            return Err(Error::InvalidWord); 
         }
         Ok(())
     }
@@ -141,5 +139,4 @@ impl Forth {
     fn set_stack(&mut self, stack: Vec<Value>) {
         self.runtime_stack = Vec::from(stack)
     }
-
 }
