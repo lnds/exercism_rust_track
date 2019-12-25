@@ -1,8 +1,12 @@
+use itertools::Itertools;
 use std::collections::HashMap;
+use std::iter::Peekable;
+use std::str::SplitWhitespace;
 
 pub type Value = i32;
 pub type ForthResult = Result<(), Error>;
 
+#[derive(Default)]
 pub struct Forth {
     runtime_stack: Vec<Value>,
     defs: HashMap<String, Vec<String>>,
@@ -18,10 +22,7 @@ pub enum Error {
 
 impl Forth {
     pub fn new() -> Forth {
-        Forth {
-            runtime_stack: Vec::new(),
-            defs: HashMap::new(),
-        }
+        Default::default()
     }
 
     pub fn stack(&self) -> Vec<Value> {
@@ -30,99 +31,128 @@ impl Forth {
 
     pub fn eval(&mut self, input: &str) -> ForthResult {
         let input = input.to_uppercase();
-        let mut tokens = input.split_whitespace();
-        while let Some(token) = tokens.next() {
-            match token {
-                ":" => {
-                    let mut def_body = Vec::new();
-                    let mut end_loop = false;
-                    while !end_loop {
-                        let token_opt = tokens.next();
-                        match token_opt {
-                            None => Err(Error::InvalidWord)?,
-                            Some(";") => end_loop = true,
-                            Some(token) => def_body.push(token.to_string()),
-                        }
-                    }
-                    let word = &def_body.first().ok_or(Error::StackUnderflow)?;
-                    if word.chars().all(|c| c.is_digit(10)) {
-                        return Err(Error::InvalidWord);
-                    }
-                    let body = def_body
-                        .clone()
-                        .into_iter()
-                        .skip(1)
-                        .flat_map(|w| {
-                            if let Some(v) = self.defs.get(&w.to_string()) {
-                                v.clone()
-                            } else {
-                                vec![w.to_string()]
-                            }
-                        })
-                        .collect::<Vec<String>>();
-                    self.defs.insert(word.to_string(), body);
-                }
-                "+" if !self.defs.contains_key(token) => {
-                    let val = self.pop()? + self.pop()?;
-                    self.push(val);
-                }
-                "-" if !self.defs.contains_key(token) => {
-                    let a = self.pop()?;
-                    let b = self.pop()?;
-                    self.push(b - a);
-                }
-                "*" if !self.defs.contains_key(token) => {
-                    let val = self.pop()? * self.pop()?;
-                    self.push(val);
-                }
-                "/" if !self.defs.contains_key(token) => {
-                    let a = self.pop()?;
-                    let b = self.pop()?;
-                    if a == 0 {
-                        return Err(Error::DivisionByZero);
-                    }
-                    self.push(b / a);
-                }
+        self.parse(&mut input.split_whitespace().peekable())
+    }
 
-                "DUP" if !self.defs.contains_key(token) => {
-                    let val = self.pop()?;
-                    self.push(val);
-                    self.push(val);
+    fn parse(&mut self, tokens: &mut Peekable<SplitWhitespace>) -> ForthResult {
+        match tokens.next() {
+            None => Ok(()),
+            Some(token) => {
+                match token {
+                    ":" => self.parse_def(tokens)?,
+                    "+" if !self.defs.contains_key(token) => self.add()?,
+                    "-" if !self.defs.contains_key(token) => self.sub()?,
+                    "*" if !self.defs.contains_key(token) => self.mul()?,
+                    "/" if !self.defs.contains_key(token) => self.div()?,
+                    "DUP" if !self.defs.contains_key(token) => self.dup()?,
+                    "DROP" if !self.defs.contains_key(token) => self.drop()?,
+                    "SWAP" if !self.defs.contains_key(token) => self.swap()?,
+                    "OVER" if !self.defs.contains_key(token) => self.over()?,
+                    _ => self.parse_value(token)?,
                 }
-                "DROP" if !self.defs.contains_key("DROP") => {
-                    self.pop()?;
-                }
-                "SWAP" if !self.defs.contains_key("SWAP") => {
-                    let a = self.pop()?;
-                    let b = self.pop()?;
-                    self.push(a);
-                    self.push(b);
-                }
-                "OVER" if !self.defs.contains_key("OVER") => {
-                    let a = self.pop()?;
-                    let b = self.pop()?;
-                    self.push(b);
-                    self.push(a);
-                    self.push(b);
-                }
-                val => {
-                    println!("val is {}", val);
-                    match val.parse::<Value>() {
-                        Ok(num) => self.push(num),
-                        _ => {
-                            let key = val.to_uppercase();
-                            if !self.defs.contains_key(&key) {
-                                return Err(Error::UnknownWord);
-                            } else {
-                                let mut forth = Forth::new();
-                                forth.set_stack(self.stack());
-                                let code = self.defs.get(val).ok_or(Error::UnknownWord)?;
-                                forth.eval(&code.join(" "))?;
-                                self.set_stack(forth.stack());
-                            }
+                self.parse(tokens)
+            }
+        }
+    }
+
+    fn parse_def(&mut self, tokens: &mut Peekable<SplitWhitespace>) -> ForthResult {
+        let word = tokens.next().ok_or(Error::InvalidWord)?;
+        if word.chars().all(|c| c.is_digit(10)) {
+            return Err(Error::InvalidWord);
+        }
+        let def_body: Vec<String> = tokens
+            .take_while_ref(|&w| w != ";")
+            .map(|s| s.to_string())
+            .collect();
+
+        match tokens.peek() {
+            Some(&s) if s == ";" => {
+                tokens.next();
+                let body = def_body
+                    .into_iter()
+                    .flat_map(|w| {
+                        if let Some(v) = self.defs.get(&w.to_string()) {
+                            v.clone()
+                        } else {
+                            vec![w]
                         }
-                    }
-                }
+                    })
+                    .collect::<Vec<String>>();
+                self.defs.insert(word.to_string(), body);
+                Ok(())
+            }
+            _ => Err(Error::InvalidWord),
+        }
+    }
+
+    fn add(&mut self) -> ForthResult {
+        let val = self.pop()? + self.pop()?;
+        self.push(val);
+        Ok(())
+    }
+
+    fn sub(&mut self) -> ForthResult {
+        let a = self.pop()?;
+        let b = self.pop()?;
+        self.push(b - a);
+        Ok(())
+    }
+
+    fn mul(&mut self) -> ForthResult {
+        let val = self.pop()? * self.pop()?;
+        self.push(val);
+        Ok(())
+    }
+
+    fn div(&mut self) -> ForthResult {
+        let a = self.pop()?;
+        let b = self.pop()?;
+        if a == 0 {
+            return Err(Error::DivisionByZero);
+        }
+        self.push(b / a);
+        Ok(())
+    }
+
+    fn dup(&mut self) -> ForthResult {
+        let val = self.pop()?;
+        self.push(val);
+        self.push(val);
+        Ok(())
+    }
+
+    fn drop(&mut self) -> ForthResult {
+        self.pop()?;
+        Ok(())
+    }
+
+    fn swap(&mut self) -> ForthResult {
+        let a = self.pop()?;
+        let b = self.pop()?;
+        self.push(a);
+        self.push(b);
+        Ok(())
+    }
+
+    fn over(&mut self) -> ForthResult {
+        let a = self.pop()?;
+        let b = self.pop()?;
+        self.push(b);
+        self.push(a);
+        self.push(b);
+        Ok(())
+    }
+
+    fn parse_value(&mut self, val: &str) -> ForthResult {
+        match val.parse::<Value>() {
+            Ok(num) => self.push(num),
+            _ if !self.defs.contains_key(&val.to_string()) => return Err(Error::UnknownWord),
+            _ => {
+                let mut forth = Forth::new();
+                forth.set_stack(self.stack());
+                let code = self.defs.get(val).ok_or(Error::UnknownWord)?;
+                forth.eval(&code.join(" "))?;
+                self.set_stack(forth.stack());
             }
         }
         Ok(())
@@ -137,6 +167,6 @@ impl Forth {
     }
 
     fn set_stack(&mut self, stack: Vec<Value>) {
-        self.runtime_stack = Vec::from(stack)
+        self.runtime_stack = stack
     }
 }
