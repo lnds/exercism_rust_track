@@ -30,16 +30,15 @@ impl<'a> PokerHand<'a> {
             PokerHand::Invalid(ref s) => s,
             PokerHand::StraightFlush(_, s) => s,
             PokerHand::FourOfAKind(_, _, s) => s,
-            PokerHand::FullHouse(_,  _, s) => s,
+            PokerHand::FullHouse(_, _, s) => s,
             PokerHand::Flush(_, s) => s,
             PokerHand::Straight(_, s) => s,
-            PokerHand::ThreeOfAKind(_, _,_, s) => s,
+            PokerHand::ThreeOfAKind(_, _, _, s) => s,
             PokerHand::TwoPair(_, _, _, s) => s,
             PokerHand::OnePair(_, _, _, _, s) => s,
             PokerHand::HighCard(_, s) => s,
         }
     }
-
 }
 
 fn sort_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
@@ -64,7 +63,7 @@ fn sort_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     result
 }
 
-fn clasify<'a>(hand: &'a str) -> PokerHand<'a> {
+fn clasify(hand: &'_ str) -> PokerHand<'_> {
     println!("clasify({})", hand);
     let mut cards: Vec<Card> = hand
         .split_whitespace()
@@ -80,7 +79,11 @@ fn clasify<'a>(hand: &'a str) -> PokerHand<'a> {
     let same_suite = cards.iter().map(|c| &c.suite).sorted().dedup().count() == 1;
     let straight = is_straight(&cards);
 
-    let max = cards.iter().map(|c| if c.value == 14 { 1 } else {c.value}).max().unwrap();
+    let max = cards
+        .iter()
+        .map(|c| if c.value == 14 { 1 } else { c.value })
+        .max()
+        .unwrap();
 
     if straight && same_suite {
         return PokerHand::StraightFlush(max, hand);
@@ -113,61 +116,44 @@ fn clasify<'a>(hand: &'a str) -> PokerHand<'a> {
         .group_by(|&x| x.value)
         .into_iter()
         .map(|(_, g)| {
-            let mut arr: Vec<_> = g.into_iter().sorted_by_key(|c| c.value).collect();
+            let mut arr: Vec<_> = g.sorted_by_key(|c| c.value).collect();
             arr.reverse();
             arr
         })
         .sorted_by_key(|v| v.len())
-        .into_iter()
         .collect::<Vec<Vec<&Card>>>();
     println!("cards2 = {:?}", cards2);
     match &clasi[..] {
-        [_, (1, 4)] => {
-            let result = PokerHand::FourOfAKind(
-                cards2.get(1).unwrap().get(0).unwrap().value,
-                cards2.get(0).unwrap().get(0).unwrap().value,
-                hand,
-            );
-            result
-        }
-        [(1, 2), (1, 3)] => {
-            let result = PokerHand::FullHouse(
-                cards2.get(1).unwrap().get(0).unwrap().value,
-                cards2.get(0).unwrap().get(0).unwrap().value,
-                hand);
-            result
-        }
-        [_, (1, 3)] => {
-            let result = PokerHand::ThreeOfAKind(
-                cards2.get(2).unwrap().get(0).unwrap().value,
-                cards2.get(1).unwrap().get(0).unwrap().value,
-            cards2.get(0).unwrap().get(0).unwrap().value, hand);
-            println!("-> Is Three of a Kind {:?}", result);
-            result
-        }
-        [_, (1, 2)] => {
-            let result = PokerHand::OnePair(
-                cards2.get(3).unwrap().get(0).unwrap().value,
-                cards2.get(0).unwrap().get(0).unwrap().value,
-                cards2.get(1).unwrap().get(0).unwrap().value,
-                cards2.get(2).unwrap().get(0).unwrap().value,
-                hand,
-            );
-            result
-        }
-        [_, (2, 2)] => {
-            let result = PokerHand::TwoPair(
-                cards2.get(2).unwrap().get(0).unwrap().value,
-                cards2.get(1).unwrap().get(0).unwrap().value,
-                cards2.get(0).unwrap().get(0).unwrap().value,
-                hand,
-            );
-            result
-        }
-        _ => {
-            println!("-> Is High Card");
-            PokerHand::HighCard(cards.get(0).unwrap().value, hand)
-        }
+        [_, (1, 4)] => PokerHand::FourOfAKind(
+            cards2.get(1).unwrap().get(0).unwrap().value,
+            cards2.get(0).unwrap().get(0).unwrap().value,
+            hand,
+        ),
+        [(1, 2), (1, 3)] => PokerHand::FullHouse(
+            cards2.get(1).unwrap().get(0).unwrap().value,
+            cards2.get(0).unwrap().get(0).unwrap().value,
+            hand,
+        ),
+        [_, (1, 3)] => PokerHand::ThreeOfAKind(
+            cards2.get(2).unwrap().get(0).unwrap().value,
+            cards2.get(1).unwrap().get(0).unwrap().value,
+            cards2.get(0).unwrap().get(0).unwrap().value,
+            hand,
+        ),
+        [_, (1, 2)] => PokerHand::OnePair(
+            cards2.get(3).unwrap().get(0).unwrap().value,
+            cards2.get(0).unwrap().get(0).unwrap().value,
+            cards2.get(1).unwrap().get(0).unwrap().value,
+            cards2.get(2).unwrap().get(0).unwrap().value,
+            hand,
+        ),
+        [_, (2, 2)] => PokerHand::TwoPair(
+            cards2.get(2).unwrap().get(0).unwrap().value,
+            cards2.get(1).unwrap().get(0).unwrap().value,
+            cards2.get(0).unwrap().get(0).unwrap().value,
+            hand,
+        ),
+        _ => PokerHand::HighCard(cards.get(0).unwrap().value, hand),
     }
 }
 
@@ -203,24 +189,20 @@ fn to_card(card: &str) -> Option<Card> {
     Some(Card { value, suite })
 }
 
-fn is_straight(cards: &Vec<Card>) -> bool {
-    let mut straight = true;
+fn is_straight(cards: &[Card]) -> bool {
     let mut previous: Option<&Card> = None;
     for c in cards.iter().rev() {
         if previous.is_some() {
             if let Some(pre) = previous {
-                if pre.value == 14 && c.value == 2 {
-                    straight = straight && true;
-                } else if c.value - pre.value == 1 {
-                    straight = straight && true;
-                } else if c.value == 14 && pre.value == 5 {
-                    straight = straight && true;
-                } else {
+                if !(pre.value == 14 && c.value == 2
+                    || c.value - pre.value == 1
+                    || c.value == 14 && pre.value == 5)
+                {
                     return false;
                 }
             }
         }
         previous = Some(c);
     }
-    return straight;
+    true
 }
