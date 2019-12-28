@@ -16,7 +16,7 @@ enum PokerHand<'a> {
     HighCard(u8, &'a str),
     OnePair(u8, u8, u8, u8, &'a str),
     TwoPair(u8, u8, u8, &'a str),
-    ThreeOfAKind(Vec<Card>, &'a str),
+    ThreeOfAKind(u8, u8, u8, &'a str),
     Straight(u8, &'a str),
     Flush(u8, &'a str),
     FullHouse(u8, u8, &'a str),
@@ -33,12 +33,13 @@ impl<'a> PokerHand<'a> {
             PokerHand::FullHouse(_,  _, s) => s,
             PokerHand::Flush(_, s) => s,
             PokerHand::Straight(_, s) => s,
-            PokerHand::ThreeOfAKind(_, s) => s,
+            PokerHand::ThreeOfAKind(_, _,_, s) => s,
             PokerHand::TwoPair(_, _, _, s) => s,
             PokerHand::OnePair(_, _, _, _, s) => s,
             PokerHand::HighCard(_, s) => s,
         }
     }
+
 }
 
 fn sort_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
@@ -74,27 +75,22 @@ fn clasify<'a>(hand: &'a str) -> PokerHand<'a> {
     println!("cards = {:?}", cards);
     let valid_hand = cards.len() == 5;
     if !valid_hand {
-        println!("->Is invalid");
         return PokerHand::Invalid(hand);
     }
     let same_suite = cards.iter().map(|c| &c.suite).sorted().dedup().count() == 1;
     let straight = is_straight(&cards);
 
+    let max = cards.iter().map(|c| if c.value == 14 { 1 } else {c.value}).max().unwrap();
+
     if straight && same_suite {
-        println!("-> is StraightFlush");
-        let max = cards.iter().map(|c| if c.value == 14 { 1 } else {c.value}).max().unwrap();
         return PokerHand::StraightFlush(max, hand);
     }
 
     if straight {
-        println!("-> is straight");
-        let max = cards.iter().map(|c| if c.value == 14 { 1 } else {c.value}).max().unwrap();
         return PokerHand::Straight(max, hand);
     }
 
     if same_suite {
-        println!("-> is flush");
-        let max = cards.iter().map(|c| if c.value == 14 { 1 } else {c.value}).max().unwrap();
         return PokerHand::Flush(max, hand);
     }
 
@@ -132,7 +128,6 @@ fn clasify<'a>(hand: &'a str) -> PokerHand<'a> {
                 cards2.get(0).unwrap().get(0).unwrap().value,
                 hand,
             );
-            println!("-> Is Four of a Kind {:?}", result);
             result
         }
         [(1, 2), (1, 3)] => {
@@ -140,12 +135,15 @@ fn clasify<'a>(hand: &'a str) -> PokerHand<'a> {
                 cards2.get(1).unwrap().get(0).unwrap().value,
                 cards2.get(0).unwrap().get(0).unwrap().value,
                 hand);
-            println!("-> Is Full House {:?}", result);
             result
         }
         [_, (1, 3)] => {
-            println!("-> Three of a kind");
-            PokerHand::ThreeOfAKind(cards, hand)
+            let result = PokerHand::ThreeOfAKind(
+                cards2.get(2).unwrap().get(0).unwrap().value,
+                cards2.get(1).unwrap().get(0).unwrap().value,
+            cards2.get(0).unwrap().get(0).unwrap().value, hand);
+            println!("-> Is Three of a Kind {:?}", result);
+            result
         }
         [_, (1, 2)] => {
             let result = PokerHand::OnePair(
@@ -155,7 +153,6 @@ fn clasify<'a>(hand: &'a str) -> PokerHand<'a> {
                 cards2.get(2).unwrap().get(0).unwrap().value,
                 hand,
             );
-            println!("-> Is a Pair {:?}", result);
             result
         }
         [_, (2, 2)] => {
@@ -165,7 +162,6 @@ fn clasify<'a>(hand: &'a str) -> PokerHand<'a> {
                 cards2.get(0).unwrap().get(0).unwrap().value,
                 hand,
             );
-            println!("-> Is Two Pair {:?}", result);
             result
         }
         _ => {
@@ -220,7 +216,6 @@ fn is_straight(cards: &Vec<Card>) -> bool {
                 } else if c.value == 14 && pre.value == 5 {
                     straight = straight && true;
                 } else {
-                    println!("straight is false when {} >> {}", c.value, pre.value);
                     return false;
                 }
             }
