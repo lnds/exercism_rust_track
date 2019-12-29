@@ -88,19 +88,19 @@ fn sort_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
 fn clasify(hand: &'_ str) -> PokerHand<'_> {
     let mut cards: Vec<Card> = hand
         .split_whitespace()
-        .flat_map(|a| to_card(a))
+        .flat_map(|a| Card::new(a))
         .sorted()
         .collect();
     cards.reverse();
     if cards.len() != 5 {
         return PokerHand::Invalid(hand);
     }
-    let same_suite = cards.iter().map(|c| &c.suite).sorted().dedup().count() == 1;
+    let same_suite = cards.iter().map(|c| &c.1).sorted().dedup().count() == 1;
     let straight = is_straight(&cards);
 
     let max = cards
         .iter()
-        .map(|c| if c.value == 14 { 1 } else { c.value })
+        .map(|c| if c.0 == 14 { 1 } else { c.0 })
         .max()
         .unwrap();
 
@@ -118,8 +118,8 @@ fn clasify(hand: &'_ str) -> PokerHand<'_> {
 
     let clasi = cards
         .iter()
-        .sorted_by_key(|c| c.value)
-        .group_by(|&x| x.value)
+        .sorted_by_key(|c| c.0)
+        .group_by(|&c| c.0)
         .into_iter()
         .map(|(x, g)| (g.count(), x))
         .sorted_by_key(|c| c.0)
@@ -129,11 +129,11 @@ fn clasify(hand: &'_ str) -> PokerHand<'_> {
         .collect::<Vec<(usize, usize)>>();
     let cards2 = cards
         .iter()
-        .sorted_by_key(|c| c.value)
-        .group_by(|&x| x.value)
+        .sorted_by_key(|c| c.0)
+        .group_by(|&c| c.0)
         .into_iter()
         .map(|(_, g)| {
-            let mut arr: Vec<_> = g.sorted_by_key(|c| c.value).collect();
+            let mut arr: Vec<_> = g.sorted_by_key(|c| c.0).collect();
             arr.reverse();
             arr
         })
@@ -141,68 +141,53 @@ fn clasify(hand: &'_ str) -> PokerHand<'_> {
         .collect::<Vec<Vec<&Card>>>();
     match &clasi[..] {
         [_, (1, 4)] => PokerHand::FourOfAKind(
-            cards2.get(1).unwrap().get(0).unwrap().value,
-            cards2.get(0).unwrap().get(0).unwrap().value,
+            cards2.get(1).unwrap().get(0).unwrap().0,
+            cards2.get(0).unwrap().get(0).unwrap().0,
             hand,
         ),
         [(1, 2), (1, 3)] => PokerHand::FullHouse(
-            cards2.get(1).unwrap().get(0).unwrap().value,
-            cards2.get(0).unwrap().get(0).unwrap().value,
+            cards2.get(1).unwrap().get(0).unwrap().0,
+            cards2.get(0).unwrap().get(0).unwrap().0,
             hand,
         ),
         [_, (1, 3)] => PokerHand::ThreeOfAKind(
-            cards2.get(2).unwrap().get(0).unwrap().value,
-            cards2.get(1).unwrap().get(0).unwrap().value,
-            cards2.get(0).unwrap().get(0).unwrap().value,
+            cards2.get(2).unwrap().get(0).unwrap().0,
+            cards2.get(1).unwrap().get(0).unwrap().0,
+            cards2.get(0).unwrap().get(0).unwrap().0,
             hand,
         ),
         [_, (1, 2)] => PokerHand::OnePair(
-            cards2.get(3).unwrap().get(0).unwrap().value,
-            cards2.get(0).unwrap().get(0).unwrap().value,
-            cards2.get(1).unwrap().get(0).unwrap().value,
-            cards2.get(2).unwrap().get(0).unwrap().value,
+            cards2.get(3).unwrap().get(0).unwrap().0,
+            cards2.get(0).unwrap().get(0).unwrap().0,
+            cards2.get(1).unwrap().get(0).unwrap().0,
+            cards2.get(2).unwrap().get(0).unwrap().0,
             hand,
         ),
         [_, (2, 2)] => PokerHand::TwoPair(
-            cards2.get(2).unwrap().get(0).unwrap().value,
-            cards2.get(1).unwrap().get(0).unwrap().value,
-            cards2.get(0).unwrap().get(0).unwrap().value,
+            cards2.get(2).unwrap().get(0).unwrap().0,
+            cards2.get(1).unwrap().get(0).unwrap().0,
+            cards2.get(0).unwrap().get(0).unwrap().0,
             hand,
         ),
-        _ => PokerHand::HighCard(cards.iter().map(|c| c.value).collect(), hand),
+        _ => PokerHand::HighCard(cards.iter().map(|c| c.0   ).collect(), hand),
     }
 }
 
-#[derive(Debug, PartialOrd, PartialEq, Eq, Ord, Clone)]
-enum Suite {
-    Spade,
-    Club,
-    Heart,
-    Diamond,
-}
-
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone)]
-struct Card {
-    value: u8,
-    suite: Suite,
-}
+struct Card(u8, char);
 
-fn to_card(card: &str) -> Option<Card> {
-    let value = match &card[0..card.len() - 1] {
-        "A" => 14,
-        "J" => 11,
-        "Q" => 12,
-        "K" => 13,
-        s => s.parse().ok().filter(|&x| x >= 2 && x <= 10)?,
-    };
-    let suite = match &card[card.len() - 1..] {
-        "H" => Suite::Heart,
-        "D" => Suite::Diamond,
-        "S" => Suite::Spade,
-        "C" => Suite::Club,
-        _ => return None,
-    };
-    Some(Card { value, suite })
+impl Card {
+    fn new (card: &str) -> Option<Card> {
+        let value = match &card[0..card.len() - 1] {
+            "A" => 14,
+            "J" => 11,
+            "Q" => 12,
+            "K" => 13,
+            s => s.parse().ok().filter(|&x| x >= 2 && x <= 10)?,
+        };
+        let suite = card.chars().last().unwrap();
+        Some(Card(value, suite))
+    }
 }
 
 fn is_straight(cards: &[Card]) -> bool {
@@ -210,9 +195,9 @@ fn is_straight(cards: &[Card]) -> bool {
     for c in cards.iter().rev() {
         if previous.is_some() {
             if let Some(pre) = previous {
-                if !(pre.value == 14 && c.value == 2
-                    || c.value - pre.value == 1
-                    || c.value == 14 && pre.value == 5)
+                if !(pre.0 == 14 && c.0 == 2
+                    || c.0 - pre.0 == 1
+                    || c.0 == 14 && pre.0 == 5)
                 {
                     return false;
                 }
