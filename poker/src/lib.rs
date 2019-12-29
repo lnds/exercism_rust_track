@@ -39,35 +39,49 @@ impl<'a> PokerHand<'a> {
             PokerHand::HighCard(_, s) => s,
         }
     }
-
 }
 
 fn sort_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     println!("hands = {:?}", hands);
-    let pre_result = hands.iter().map(|h| clasify(h)).sorted().collect::<Vec<PokerHand>>();
+    let pre_result = hands
+        .iter()
+        .map(|h| clasify(h))
+        .sorted()
+        .collect::<Vec<PokerHand>>();
     if pre_result.iter().all(|x| match x {
-        PokerHand::HighCard(_,_) => true,
+        PokerHand::HighCard(_, _) => true,
         _ => false,
     }) {
         println!("tie!");
-        let max = pre_result.iter().map(|c| {match c {
-            PokerHand::HighCard(v,_) => v.clone(),
-            _ => vec![]
-        }}
-        ).max().unwrap();
+        let max = pre_result
+            .iter()
+            .map(|c| match c {
+                PokerHand::HighCard(v, _) => v.clone(),
+                _ => vec![],
+            })
+            .max()
+            .unwrap();
         println!("max = {:?}", max);
-        pre_result.iter().filter(|&c| {
-            let result = match c {
-                PokerHand::HighCard(v,_) => *v == max,
-                _ => false
-            } ;
-            println!("filtrando c = {:?} => {}", *c, result);
-            result
-        }).map(|c| c.clone().extract_str()).collect()
-    }
-    else {
-        vec![hands.iter().map(|h| clasify(h)).sorted().
-        map(|s| s.extract_str()).last().unwrap()]
+        pre_result
+            .iter()
+            .filter(|&c| {
+                let result = match c {
+                    PokerHand::HighCard(v, _) => *v == max,
+                    _ => false,
+                };
+                println!("filtrando c = {:?} => {}", *c, result);
+                result
+            })
+            .map(|c| c.clone().extract_str())
+            .collect()
+    } else {
+        vec![hands
+            .iter()
+            .map(|h| clasify(h))
+            .sorted()
+            .map(|s| s.extract_str())
+            .last()
+            .unwrap()]
     }
 }
 
@@ -102,10 +116,10 @@ fn clasify(hand: &'_ str) -> PokerHand<'_> {
         return PokerHand::Flush(max, hand);
     }
 
-    let clasi =  cards
-    .iter()
-    .sorted_by_key(|c| c.value)
-    .group_by(|&x| x.value)
+    let clasi = cards
+        .iter()
+        .sorted_by_key(|c| c.value)
+        .group_by(|&x| x.value)
         .into_iter()
         .map(|(x, g)| (g.count(), x))
         .sorted_by_key(|c| c.0)
@@ -155,7 +169,7 @@ fn clasify(hand: &'_ str) -> PokerHand<'_> {
             cards2.get(0).unwrap().get(0).unwrap().value,
             hand,
         ),
-        _ => PokerHand::HighCard(cards.iter().map(|c|c.value).collect(), hand),
+        _ => PokerHand::HighCard(cards.iter().map(|c| c.value).collect(), hand),
     }
 }
 
