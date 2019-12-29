@@ -62,18 +62,7 @@ impl PokerHand {
         if flush {
             return PokerHand::Flush(max);
         }
-
-        let clasi = cards
-            .iter()
-            .sorted_by_key(|c| c.0)
-            .group_by(|&c| c.0)
-            .into_iter()
-            .map(|(x, g)| (g.count(), x))
-            .sorted_by_key(|c| c.0)
-            .group_by(|c| c.0)
-            .into_iter()
-            .map(|(x, g)| (g.count(), x))
-            .collect::<Vec<(usize, usize)>>();
+        
         let grouped_cards = cards
             .iter()
             .sorted_by_key(|c| c.0)
@@ -86,29 +75,31 @@ impl PokerHand {
             })
             .sorted_by_key(|v| v.len())
             .collect::<Vec<Vec<&Card>>>();
-        match &clasi[..] {
-            [_, (1, 4)] => PokerHand::FourOfAKind(
+        let cl = &grouped_cards.iter().map(|v| v.len()).sorted().collect::<Vec<usize>>()[..] ;
+        println!("cl = {:?}", cl);
+        match &grouped_cards.iter().map(|v| v.len()).collect::<Vec<usize>>()[..] {
+            [_, 4] => PokerHand::FourOfAKind(
                 grouped_cards[1][0].0,
                 grouped_cards[0][0].0,
             ),
-            [(1, 2), (1, 3)] => PokerHand::FullHouse(
+            [2, 3] => PokerHand::FullHouse(
                 grouped_cards[1][0].0,
                 grouped_cards[0][0].0,
             ),
-            [_, (1, 3)] => PokerHand::ThreeOfAKind(
+            [_, _, 3] => PokerHand::ThreeOfAKind(
                 grouped_cards[2][0].0,
                 grouped_cards[1][0].0,
                 grouped_cards[0][0].0,
             ),
-            [_, (1, 2)] => PokerHand::OnePair(
+            [_, 2, 2] => PokerHand::TwoPair(
+                grouped_cards[2][0].0,
+                grouped_cards[1][0].0,
+                grouped_cards[0][0].0,
+            ),
+            [_, _, _, 2] => PokerHand::OnePair(
                 grouped_cards[3][0].0,
                 grouped_cards[0][0].0,
                 grouped_cards[0][0].0,
-                grouped_cards[0][0].0,
-            ),
-            [_, (2, 2)] => PokerHand::TwoPair(
-                grouped_cards[2][0].0,
-                grouped_cards[1][0].0,
                 grouped_cards[0][0].0,
             ),
             _ => PokerHand::HighCard(cards[0].0, cards[1].0, cards[2].0, cards[3].0, cards[4].0),
