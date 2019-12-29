@@ -15,19 +15,23 @@ pub fn winning_hands<'a>(hands: &[&'a str]) -> Option<Vec<&'a str>> {
         })
         .sorted_by(|x, y| y.cmp(x))
         .collect::<Vec<(PokerHand, &'a str)>>();
-
-    let winner = &hands[0].0;
-    Some(
-        hands
-            .iter()
-            .take_while(|hand| hand.0 == *winner) // for ties
-            .map(|h| h.1)
-            .collect(),
-    )
+    if hands.iter().any(|(hand, _)| *hand == PokerHand::Invalid) {
+        None
+    } else {
+        let winner = &hands[0].0;
+        Some(
+            hands
+                .iter()
+                .take_while(|hand| hand.0 == *winner) // for ties
+                .map(|h| h.1)
+                .collect(),
+        )
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 enum PokerHand {
+    Invalid,
     HighCard(u8, u8, u8, u8, u8),
     OnePair(u8, u8, u8, u8),
     TwoPair(u8, u8, u8),
@@ -41,48 +45,25 @@ enum PokerHand {
 
 impl PokerHand {
     fn new(cards: &[Card]) -> Self {
-        let cards: Vec<Card> = cards.iter().sorted_by(|x, y| y.cmp(x)).cloned().collect();
-        let straight = cards
-            .windows(2)
-            .all(|w| w[0].0 == w[1].0 + 1 || w[0].0 == 14 && w[1].0 == 5);
-        let flush = cards.iter().all(|c| c.1 == cards[0].1);
-
-        let max = cards
-            .iter()
-            .map(|c| if c.0 == 14 { 1 } else { c.0 })
-            .max()
-            .unwrap();
-        if straight && flush {
-            return PokerHand::StraightFlush(max);
-        }
-        if straight {
-            return PokerHand::Straight(max);
+        if cards.len() != 5 {
+            return PokerHand::Invalid;
         }
 
-        if flush {
-            return PokerHand::Flush(max);
-        }
-        
         let grouped_cards = cards
             .iter()
             .sorted_by_key(|c| c.0)
             .group_by(|&c| c.0)
             .into_iter()
-            .map(|(_, g)| {
-                g.map(|c| c.0).collect()
-            })
-            .sorted_by_key(|v:&Vec<u8>| v.len())
+            .map(|(_, g)| g.map(|c| c.0).collect())
+            .sorted_by_key(|v: &Vec<u8>| v.len())
             .collect::<Vec<Vec<u8>>>();
-        let clasi = &grouped_cards.iter().map(|v| v.len()).collect::<Vec<usize>>() ;
+        let clasi = &grouped_cards
+            .iter()
+            .map(|v| v.len())
+            .collect::<Vec<usize>>();
         match &clasi[..] {
-            [_, 4] => PokerHand::FourOfAKind(
-                grouped_cards[1][0],
-                grouped_cards[0][0],
-            ),
-            [2, 3] => PokerHand::FullHouse(
-                grouped_cards[1][0],
-                grouped_cards[0][0],
-            ),
+            [_, 4] => PokerHand::FourOfAKind(grouped_cards[1][0], grouped_cards[0][0]),
+            [2, 3] => PokerHand::FullHouse(grouped_cards[1][0], grouped_cards[0][0]),
             [_, _, 3] => PokerHand::ThreeOfAKind(
                 grouped_cards[2][0],
                 grouped_cards[1][0],
@@ -99,7 +80,33 @@ impl PokerHand {
                 grouped_cards[0][0],
                 grouped_cards[0][0],
             ),
-            _ => PokerHand::HighCard(cards[0].0, cards[1].0, cards[2].0, cards[3].0, cards[4].0),
+            _ => {
+                // can't find groups, so see if we have straights or flush
+                let cards: Vec<Card> = cards.iter().sorted_by(|x, y| y.cmp(x)).cloned().collect();
+                let straight = cards
+                    .windows(2)
+                    .all(|w| w[0].0 == w[1].0 + 1 || w[0].0 == 14 && w[1].0 == 5);
+                let flush = cards.iter().all(|c| c.1 == cards[0].1);
+
+                if !straight && !flush {
+                    PokerHand::HighCard(cards[0].0, cards[1].0, cards[2].0, cards[3].0, cards[4].0)
+                } else {
+                    // fix situation when we have an ace in cards
+                    let max: u8 = cards
+                        .iter()
+                        .map(|c| if c.0 == 14 { 1 } else { c.0 })
+                        .max()
+                        .unwrap();
+
+                    if straight && flush {
+                        PokerHand::StraightFlush(max)
+                    } else if straight {
+                        PokerHand::Straight(max)
+                    } else {
+                        PokerHand::Flush(max)
+                    }
+                }
+            }
         }
     }
 }
@@ -116,7 +123,7 @@ impl Card {
             "K" => 13,
             s => s.parse().ok().filter(|&x| x >= 2 && x <= 10)?,
         };
-        let suite = card.chars().last().unwrap();
+        let suite = card.chars().last()?;
         Some(Card(value, suite))
     }
 }
