@@ -75,9 +75,8 @@ impl PokerHand {
             })
             .sorted_by_key(|v| v.len())
             .collect::<Vec<Vec<&Card>>>();
-        let cl = &grouped_cards.iter().map(|v| v.len()).sorted().collect::<Vec<usize>>()[..] ;
-        println!("cl = {:?}", cl);
-        match &grouped_cards.iter().map(|v| v.len()).collect::<Vec<usize>>()[..] {
+        let clasi = &grouped_cards.iter().map(|v| v.len()).collect::<Vec<usize>>() ;
+        match &clasi[..] {
             [_, 4] => PokerHand::FourOfAKind(
                 grouped_cards[1][0].0,
                 grouped_cards[0][0].0,
