@@ -123,7 +123,19 @@ impl Card {
             "K" => 13,
             s => s.parse().ok().filter(|&x| x >= 2 && x <= 10)?,
         };
-        let suite = card.chars().last()?;
+        let suite = card.chars().last().filter(|&s| s == 'H' || s == 'D' || s == 'S' || s == 'C')?;
         Some(Card(value, suite))
     }
+}
+
+#[test]
+fn test_invalid_hand() {
+    assert!(winning_hands(&[""]).is_none());
+    assert!(winning_hands(&["4S 20S AS AH 2C"]).is_none());
+    assert!(winning_hands(&["4S 1S AS AH 2C"]).is_none());
+    assert!(winning_hands(&["4S 1S AH 2C"]).is_none());
+    assert!(winning_hands(&["4S 2S AS AH 2C"]).is_some());
+    assert!(winning_hands(&["4S 2s AS AH 2C"]).is_none());
+    assert!(winning_hands(&["4Z 2s AS AH 2C"]).is_none());
+    assert!(winning_hands(&["4SASAH2C10D"]).is_none());
 }
