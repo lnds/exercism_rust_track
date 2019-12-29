@@ -69,37 +69,35 @@ impl PokerHand {
             .group_by(|&c| c.0)
             .into_iter()
             .map(|(_, g)| {
-                let mut arr: Vec<_> = g.sorted_by_key(|c| c.0).collect();
-                arr.reverse();
-                arr
+                g.map(|c| c.0).collect()
             })
-            .sorted_by_key(|v| v.len())
-            .collect::<Vec<Vec<&Card>>>();
+            .sorted_by_key(|v:&Vec<u8>| v.len())
+            .collect::<Vec<Vec<u8>>>();
         let clasi = &grouped_cards.iter().map(|v| v.len()).collect::<Vec<usize>>() ;
         match &clasi[..] {
             [_, 4] => PokerHand::FourOfAKind(
-                grouped_cards[1][0].0,
-                grouped_cards[0][0].0,
+                grouped_cards[1][0],
+                grouped_cards[0][0],
             ),
             [2, 3] => PokerHand::FullHouse(
-                grouped_cards[1][0].0,
-                grouped_cards[0][0].0,
+                grouped_cards[1][0],
+                grouped_cards[0][0],
             ),
             [_, _, 3] => PokerHand::ThreeOfAKind(
-                grouped_cards[2][0].0,
-                grouped_cards[1][0].0,
-                grouped_cards[0][0].0,
+                grouped_cards[2][0],
+                grouped_cards[1][0],
+                grouped_cards[0][0],
             ),
             [_, 2, 2] => PokerHand::TwoPair(
-                grouped_cards[2][0].0,
-                grouped_cards[1][0].0,
-                grouped_cards[0][0].0,
+                grouped_cards[2][0],
+                grouped_cards[1][0],
+                grouped_cards[0][0],
             ),
             [_, _, _, 2] => PokerHand::OnePair(
-                grouped_cards[3][0].0,
-                grouped_cards[0][0].0,
-                grouped_cards[0][0].0,
-                grouped_cards[0][0].0,
+                grouped_cards[3][0],
+                grouped_cards[0][0],
+                grouped_cards[0][0],
+                grouped_cards[0][0],
             ),
             _ => PokerHand::HighCard(cards[0].0, cards[1].0, cards[2].0, cards[3].0, cards[4].0),
         }
