@@ -13,7 +13,7 @@ pub fn winning_hands<'a>(hands: &[&'a str]) -> Option<Vec<&'a str>> {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 enum PokerHand<'a> {
     Invalid(&'a str),
-    HighCard(u8, &'a str),
+    HighCard(Vec<u8>, &'a str),
     OnePair(u8, u8, u8, u8, &'a str),
     TwoPair(u8, u8, u8, &'a str),
     ThreeOfAKind(u8, u8, u8, &'a str),
@@ -27,7 +27,7 @@ enum PokerHand<'a> {
 impl<'a> PokerHand<'a> {
     fn extract_str(self) -> &'a str {
         match self {
-            PokerHand::Invalid(ref s) => s,
+            PokerHand::Invalid(s) => s,
             PokerHand::StraightFlush(_, s) => s,
             PokerHand::FourOfAKind(_, _, s) => s,
             PokerHand::FullHouse(_, _, s) => s,
@@ -39,41 +39,46 @@ impl<'a> PokerHand<'a> {
             PokerHand::HighCard(_, s) => s,
         }
     }
+
 }
 
 fn sort_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    let pre_result = hands
-        .iter()
-        .map(|h| clasify(h))
-        .sorted()
-        .group_by(|x| x.clone())
-        .into_iter()
-        .map(|(x, g)| (x, g.collect()))
-        .collect::<Vec<(PokerHand<'a>, Vec<_>)>>();
-    println!("pre result = {:?}", pre_result);
-    let result = pre_result
-        .into_iter()
-        .last()
-        .unwrap()
-        .1
-        .into_iter()
-        .map(|s| s.extract_str())
-        .collect::<Vec<_>>();
-    println!("hands: {:?}, result = {:?}", hands, result.clone());
-    result
+    println!("hands = {:?}", hands);
+    let pre_result = hands.iter().map(|h| clasify(h)).sorted().collect::<Vec<PokerHand>>();
+    if pre_result.iter().all(|x| match x {
+        PokerHand::HighCard(_,_) => true,
+        _ => false,
+    }) {
+        println!("tie!");
+        let max = pre_result.iter().map(|c| {match c {
+            PokerHand::HighCard(v,_) => v.clone(),
+            _ => vec![]
+        }}
+        ).max().unwrap();
+        println!("max = {:?}", max);
+        pre_result.iter().filter(|&c| {
+            let result = match c {
+                PokerHand::HighCard(v,_) => *v == max,
+                _ => false
+            } ;
+            println!("filtrando c = {:?} => {}", *c, result);
+            result
+        }).map(|c| c.clone().extract_str()).collect()
+    }
+    else {
+        vec![hands.iter().map(|h| clasify(h)).sorted().
+        map(|s| s.extract_str()).last().unwrap()]
+    }
 }
 
 fn clasify(hand: &'_ str) -> PokerHand<'_> {
-    println!("clasify({})", hand);
     let mut cards: Vec<Card> = hand
         .split_whitespace()
         .flat_map(|a| to_card(a))
         .sorted()
         .collect();
     cards.reverse();
-    println!("cards = {:?}", cards);
-    let valid_hand = cards.len() == 5;
-    if !valid_hand {
+    if cards.len() != 5 {
         return PokerHand::Invalid(hand);
     }
     let same_suite = cards.iter().map(|c| &c.suite).sorted().dedup().count() == 1;
@@ -97,12 +102,10 @@ fn clasify(hand: &'_ str) -> PokerHand<'_> {
         return PokerHand::Flush(max, hand);
     }
 
-    let groups = cards
-        .iter()
-        .sorted_by_key(|c| c.value)
-        .group_by(|&x| x.value);
-
-    let clasi = groups
+    let clasi =  cards
+    .iter()
+    .sorted_by_key(|c| c.value)
+    .group_by(|&x| x.value)
         .into_iter()
         .map(|(x, g)| (g.count(), x))
         .sorted_by_key(|c| c.0)
@@ -122,7 +125,6 @@ fn clasify(hand: &'_ str) -> PokerHand<'_> {
         })
         .sorted_by_key(|v| v.len())
         .collect::<Vec<Vec<&Card>>>();
-    println!("cards2 = {:?}", cards2);
     match &clasi[..] {
         [_, (1, 4)] => PokerHand::FourOfAKind(
             cards2.get(1).unwrap().get(0).unwrap().value,
@@ -153,7 +155,7 @@ fn clasify(hand: &'_ str) -> PokerHand<'_> {
             cards2.get(0).unwrap().get(0).unwrap().value,
             hand,
         ),
-        _ => PokerHand::HighCard(cards.get(0).unwrap().value, hand),
+        _ => PokerHand::HighCard(cards.iter().map(|c|c.value).collect(), hand),
     }
 }
 
