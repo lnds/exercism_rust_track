@@ -8,7 +8,7 @@ pub fn winning_hands<'a>(hands: &[&'a str]) -> Option<Vec<&'a str>> {
                 hand.split_whitespace()
                     .flat_map(|card| Card::new(card))
                     .collect::<Vec<Card>>()
-                    .as_mut_slice(),
+                    .as_slice(),
             );
 
             (pokerhand, *hand)
