@@ -31,7 +31,7 @@ pub fn chain(input: &[(u8, u8)]) -> Option<Vec<(u8, u8)>> {
     for (&x, &y) in iproduct!(indices.iter(), indices.iter()) {
         let a = &graph[x].clone();
         let b = &graph[y];
-        if a != b && a.connect(b) {
+        if  a.connect(b) {
             graph.add_edge(x, y, 1);
         }
     }
@@ -46,7 +46,6 @@ pub fn chain(input: &[(u8, u8)]) -> Option<Vec<(u8, u8)>> {
         ) {
             let dom_path: Vec<Domino> = path.iter().map(|&pi| &graph[pi]).cloned().collect();
             if dom_path.iter().map(|d| d.id).sorted().dedup().count() == input.len() {
-                println!("dom path => {:?}", dom_path);
                 let doms = dom_path.iter().map(|d| d.pair).collect::<Vec<(u8, u8)>>();
                 if doms[0].0 == doms[doms.len() - 1].1 {
                     return Some(doms);
