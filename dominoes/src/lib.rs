@@ -50,11 +50,11 @@ pub fn chain(input: &[(u8, u8)]) -> Option<Vec<(u8, u8)>> {
                     ) {
                         let dom_path: Vec<Domino> =
                             path.iter().map(|&pi| &graph[pi]).cloned().collect();
-                        if dom_path.iter().map(|d| d.0).sorted().dedup().count() == input.len() {
+                        if dom_path.iter().map(|d| d.id).sorted().dedup().count() == input.len() {
                             println!("dom path => {:?}", dom_path);
                             let doms = dom_path
                                 .iter()
-                                .map(|d| (d.1, d.2))
+                                .map(|d| d.pair)
                                 .collect::<Vec<(u8, u8)>>();
                             if doms[0].0 == doms[doms.len() - 1].1 {
                                 return Some(doms);
@@ -69,18 +69,18 @@ pub fn chain(input: &[(u8, u8)]) -> Option<Vec<(u8, u8)>> {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-struct Domino(usize, u8, u8);
+struct Domino{id:usize, pair:(u8, u8)}
 
 impl Domino {
     fn new(id: usize, pair: (u8, u8)) -> Self {
-        Domino(id, pair.0, pair.1)
+        Domino{id, pair}
     }
 
     fn rev(id: usize, pair: (u8, u8)) -> Self {
-        Domino(id, pair.1, pair.0)
+        Domino{id, pair: (pair.1, pair.0)}
     }
 
     fn connect(&self, other: &Domino) -> bool {
-        self.2 == other.1 && self.0 != other.0
+        self.pair.1 == other.pair.0 && self.id != other.id
     }
 }
