@@ -1,11 +1,8 @@
 #[macro_export]
 macro_rules! hashmap {
-    () => {
-        {use std::collections::HashMap;
-        HashMap::new() }
-    };
     ( $($k:expr => $v:expr),* $(,)? )  => {
-        {
+        {   
+            use std::collections::HashMap;
             let mut temp_hash = HashMap::new();
             $(
                 temp_hash.insert($k, $v);
