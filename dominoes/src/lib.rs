@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate itertools;
 use itertools::Itertools;
-use petgraph::algo::{all_simple_paths};
+use petgraph::algo::all_simple_paths;
 use petgraph::graph::{DiGraph, NodeIndex};
 
 pub fn chain(input: &[(u8, u8)]) -> Option<Vec<(u8, u8)>> {
@@ -31,7 +31,7 @@ pub fn chain(input: &[(u8, u8)]) -> Option<Vec<(u8, u8)>> {
     for (&x, &y) in iproduct!(indices.iter(), indices.iter()) {
         let a = &graph[x].clone();
         let b = &graph[y];
-        if  a.connect(b) {
+        if a.connect(b) {
             graph.add_edge(x, y, 1);
         }
     }
